@@ -1,0 +1,59 @@
+\documentclass[12pt]{article}
+
+\begin{document}
+
+\begin{center}
+	\bf
+	Homework 6 Design \\
+	Computer Science 182 \\
+	\rm
+	James Reinke, Will Tachau \\
+	April 21, 2014
+\end{center}
+
+\begin{enumerate}
+
+\item \textbf{Tournament Manager}
+\begin{itemize}	\item This process is responsible for creating the tournament brackets upon request from the environment and keeping track of win/loss records for each member in the tournament
+	\item Accepts ``join" messages from \texttt{Players} to add them to the bracket, and begins a tournament when the conditions are right.	\item All of the round statistics are managed by the \texttt{Match Manager} process
+	\begin{itemize}		\item To that effect, \texttt{Match Manager} controls player cheating, the \texttt{Tournament Manager} is simply responsible for keeping track of what the Match managers reports from the Match
+	\end{itemize}	\item The \texttt{Tournament Manager} keeps track of the wins/losses for each player in a single list throughout the tournament while simultaneously keeping track of the progression of the bracket	\item At the end of the tournament, the \texttt{Tournament Manager} sends the bracket results to the console, along with a list of wins/losses for each player
+	\begin{itemize}		\item It is necessary to send both because players may receive byes without winning any Matchs, so both statistics must be recorded 
+	\end{itemize}
+\end{itemize}
+
+\item \textbf{Match Manager}\begin{itemize} 
+	\item Responsible for starting a Match between two \texttt{Players}, as dictated by the \texttt{Tournament Manager}, and keeping track of scores.	\item The \texttt{Match Manager} randomly selects 15 dice to be chosen for that round (assuming the round is not being played under \emph{standard} Yahtzee rules) following the convention described in the homework assignment.
+	\item Starts a turn by asking one \texttt{Player} for their move given the first five numbers in the dice roll. (Includes a time-out in this message to check if the player has logged out/ lost connection)
+	\begin{itemize}
+		\item If \emph{both} \texttt{Players} lose connection, and do not join within a given time, the \texttt{Match Manager} reports to the \texttt{Tournament Manager} that the atom \texttt{bye} advances.
+	\end{itemize}
+	\item \texttt{Player} processes report which dice they want to keep and if they want to use their dice to score points
+	\begin{itemize}		\item This allows the Match process to ensure that no cheating occurs; it knows the possible legal moves for each player and allows the game to progress according to those conventions
+		\item If the player does not want to use their dice for points yet, they have the option of ``re-rolling" twice, and the \texttt{Match Manager} responds with the next subset of dice.
+	\end{itemize}	\item The Match manager keeps a list of dice that the players currently have, so when it receives a message from a player to use their dice for a specific slot on the score card, the Match manager will know whether or not this is a legal move and will respond accordingly
+	\begin{itemize}		\item If a \texttt{Player} makes an illegal move (i.e. ``cheats"), an invalid atom will be sent back to the player to make another move
+		\item If the \texttt{Player} makes too many consecutive invalid moves (say 3) then the Match manager drops that player from the Match and follows the same protocol as if that player had crashed.
+	\item After every turn, the \texttt{Match Manager} sends an ``update" message to each \texttt{Player} containing the revisions to the overall scorecard.
+	\end{itemize}	\item If a game results in a tie, then the Match manager discards it and starts a new game.
+	\begin{itemize}
+		\item If there are $(k/2)$ consecutive ties, the \texttt{Match Manager} re-starts the match under \emph{standard} rules, where each of the players is given different dice configurations.
+	\end{itemize}
+\end{itemize}
+
+\item \textbf{Player}
+\begin{itemize}	\item Players are independent processes that interact with the \texttt{Match Manager}'s API to play the match.	\item A \texttt{Player} process is unable to cheat because it does not share its own score card with the \texttt{Match Manager}, but rather the intermediate moves it makes during the Match	\item \texttt{Player} processes will send several atoms to the \texttt{Match Manager} to update game play	\begin{itemize}
+		\item \texttt{choose}
+		\begin{itemize}			\item this atom is followed by a list of numbers that specify which dice it wants to keep from a given roll
+		\end{itemize}		\item \texttt{play}
+		\begin{itemize}			\item this atom is followed by a number item on our score list that specifies it wants its current hand to count for points in that spot			\item The \texttt{Match Manager} knows what the player has chosen to keep and what it was given after keeping dice, so the \texttt{Match Manager} knows if this move is valid and how many points it should be worth for the player.
+		\end{itemize}
+	\end{itemize}
+\end{itemize}
+\end{enumerate}
+
+\end{document}
+
+
+
+
