@@ -2,10 +2,11 @@
 %%
 %% Usage:
 %% erl -compile yahtzee_player1
-%% erl -noshell -run yahtzee_player1 main networkname -run init stop -noshell
+%% erl -noshell -run yahtzee_player1 main Will u p tm1@<host> tm2@<host> -run init stop -noshell
 %%
 
 -module(yahtzee_player1).
+-define(TIMEOUT, 3000).
 
 %% ====================================================================
 %% API functions
@@ -27,17 +28,13 @@ main(Params) ->
 	os:cmd("epmd -daemon"),
 	net_kernel:start([list_to_atom(Name), shortnames]),
 	% Connect to registry of first tournament manager
-	net_kernel:connect_node(list_to_atom(hd(TManager))),
 	timer:sleep(1000),
 	io:format("~p Registered as node ~p, with ~p~n", [timestamp(), node(), nodes()]),
-	io:format("Connected to ~p~n",[global:registered_names()]),
 
 
 
 	% login to tournament managers
-	login(TManager, Username, Password),
-
-	listen().
+	login(TManager, Username, Password, []).
 
 %% ====================================================================
 %% Internal functions
@@ -48,22 +45,41 @@ timestamp() ->
     {{_, _, _}, {Hour, Min, Sec}} = calendar:now_to_local_time(now()),
     lists:concat([Hour, ":", Min, ":", Sec, ".", Micros]).
 
-login([], _, _) ->
-	ok;
-login(TManagers, Username, Password) ->
+login([], _, _, Connections) ->
+	listen(Connections);
+login(TManagers, Username, Password, Connections) ->
+
+	% Get a Tournament Manager and send it login message
 	TManager = list_to_atom(hd(TManagers)),
-	Msg = {login, self(), something},
+	Msg = {login, self(), {Username, Password}},
 	io:format("Trying to login to ~p~n", [TManager]),
-	global:send(TManager, Msg),
-	login(tl(TManagers), Username, Password).
+	{yahtzee, TManager} ! Msg,
+
+	% Receive confirmation
+	receive
+		{logged_in, PID, LoginTicket} ->
+			io:format("~p Received logged-in confirmation from ~p with ticket ~p~n",[timestamp(), PID, LoginTicket]),
+			login(tl(TManagers), Username, Password, Connections++[{TManager, PID, LoginTicket}])
+	after ?TIMEOUT -> 
+		io:format("Timed out waiting for logged_in reply from ~p!~n", [TManager]),
+		login(tl(TManagers), Username, Password, Connections)
+	end.
+	
 
 % Continuous listening method
-listen()->
+listen(Connections)->
+	io:format("~p listening for messages with connections=~p~n",[timestamp(), Connections]),
 	receive
-		{logged_in, PID, Data} ->
-			io:format("~p Received logged-in from ~p~n",[timestamp(), PID]),
-			listen();
+		{logged_in, PID, LoginTicket} ->
+			io:format("~p Received logged-in confirmation from ~p with ticket ~p~n",[timestamp(), PID, LoginTicket]),
+			listen(LoginTicket);
 		{__, Pid, Data} ->
 			io:format("~p Received unknown message~n", [timestamp()]),
-			listen
+			listen(none)
 	end.
+
+
+
+
+
+

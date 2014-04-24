@@ -2,7 +2,7 @@
 %%
 %% Usage:
 %% erl -compile yahtzee
-%% erl -noshell -run yahtzee main networkname -run init stop -noshell
+%% erl -noshell -run yahtzee main tm1 -run init stop -noshell
 %%
 
 -module(yahtzee).
@@ -20,12 +20,10 @@ main(Params) ->
 	%% IMPORTANT: Start the empd daemon!
 	os:cmd("epmd -daemon"),
 	net_kernel:start([list_to_atom(Name), shortnames]),
-	global:register_name(list_to_atom(Name), self()),
-	timer:sleep(1000),
+	register(yahtzee, self()),
 	io:format("~p Registered as node ~p, name ~p, nodes ~p~n", [timestamp(), node(), Name, nodes()]),
-	io:format("Registered names:~p~n",[global:registered_names()]),
 
-	listen().
+	listen([]).
 
 %% ====================================================================
 %% Internal functions
@@ -37,12 +35,33 @@ timestamp() ->
     lists:concat([Hour, ":", Min, ":", Sec, ".", Micros]).
 
 % Continuous listening method
-listen()->
+listen(Players)->
 	receive
-		{login, PID, Data} ->
-			io:format("~p Received login from ~p~n",[timestamp(), PID]),
-			listen();
-		{__, Pid, Data} ->
-			io:format("~p Received unknown message~n", [timestamp()]),
-			listen()
+		{login, PID, {Username, Password}} ->
+			io:format("~p Received login from ~p at ~p~n",[timestamp(), Username, PID]),
+
+			% monitor it
+			erlang:monitor(process, PID),
+
+			% create login ticket for player
+			LoginTicket = make_ref(),
+			PID ! {logged_in, self(), LoginTicket},
+
+			io:format("~p All Players: ~p~n", [timestamp(), Players++[{Username, PID, LoginTicket}]]),
+
+			% Remember player
+			listen(Players++[{Username, PID, LoginTicket}]);
+
+		%{start_tournament, PID, NumberPlayers} ->
+		%
+		%	% set flag to YES, remember number somehow
+		%	ok,
+
+		{'DOWN', MonitorReference, process, PID, Reason} ->
+			io:format("process ~p died!~n", [PID]),
+			listen(Players);
+
+		{__, PID, Data} ->
+			io:format("~p Received unknown message from ~p~n", [timestamp(), PID]),
+			listen(none)
 	end.
