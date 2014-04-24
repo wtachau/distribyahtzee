@@ -47,10 +47,12 @@ listen(Players)->
 			LoginTicket = make_ref(),
 			PID ! {logged_in, self(), LoginTicket},
 
-			io:format("~p All Players: ~p~n", [timestamp(), Players++[{Username, PID, LoginTicket}]]),
+			NewPlayers = loginPlayer(Players, Username, PID, LoginTicket),
+
+			io:format("~p All Players: ~p~n", [timestamp(), NewPlayers]),
 
 			% Remember player
-			listen(Players++[{Username, PID, LoginTicket}]);
+			listen(NewPlayers);
 
 		%{start_tournament, PID, NumberPlayers} ->
 		%
@@ -58,10 +60,51 @@ listen(Players)->
 		%	ok,
 
 		{'DOWN', MonitorReference, process, PID, Reason} ->
-			io:format("process ~p died!~n", [PID]),
-			listen(Players);
+		%{'DOWN', __, process, PID, __} ->
+			io:format("~p Process ~p died! Logging out...~n", [timestamp(), PID]),
 
-		{__, PID, Data} ->
+			NewPlayers = logoutPlayer(Players, PID),
+
+			io:format("~p All Players: ~p~n", [timestamp(), NewPlayers]),
+
+			listen(NewPlayers);
+
+		{__, PID, __} ->
 			io:format("~p Received unknown message from ~p~n", [timestamp(), PID]),
 			listen(none)
 	end.
+
+% Add a player to the list, if not already there
+loginPlayer([], Username, PID, LoginTicket) ->
+	[{Username, PID, LoginTicket}];
+loginPlayer(Players, Username, PID, LoginTicket) ->
+	{U, _, _} = hd(Players),
+	if
+		U == Username ->
+			io:format("~p Logging back in player ~p~n", [timestamp(), U]),
+			AltPlayers = Players -- [hd(Players)],
+			AltPlayers ++ [{U, PID, LoginTicket}];
+		true ->
+			[hd(Players)]++loginPlayer(tl(Players), Username, PID, LoginTicket)
+	end.
+
+logoutPlayer([], PID) ->
+	io:format("~p ERROR: Logout Player with PID ~p not found!~n", [timestamp(), PID]);
+logoutPlayer(Players, PID) ->
+	{U, P, _} = hd(Players),
+	if
+		PID == P ->
+			io:format("~p Logging out player~p~n",[timestamp(), U]),
+			AltPlayers = Players -- [hd(Players)],
+			AltPlayers ++ [{U, none, none}];
+		true ->
+			[hd(Players)] ++ logoutPlayer(tl(Players), PID)
+	end.
+
+
+
+
+
+
+
+
