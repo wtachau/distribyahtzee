@@ -40,14 +40,18 @@ listen(Players)->
 		{login, PID, {Username, Password}} ->
 			io:format("~p Received login from ~p at ~p~n",[timestamp(), Username, PID]),
 
-			% monitor it
-			erlang:monitor(process, PID),
-
-			% create login ticket for player
+			% create login ticket for player, login, and send conf
 			LoginTicket = make_ref(),
-			PID ! {logged_in, self(), LoginTicket},
-
-			NewPlayers = loginPlayer(Players, Username, PID, LoginTicket),
+			{NewPlayers, Success} = loginPlayer(Players, Username, Password, PID, LoginTicket),
+			if
+				Success == yes ->
+					% monitor it, and confirm
+					erlang:monitor(process, PID),
+					PID ! {logged_in, self(), LoginTicket};
+				true ->
+					io:format("~p BAD PASSWORD: User ~p's pw doesn't match~n", [timestamp(), Username]),
+					PID ! {bad_login, self(), none}
+			end,
 
 			io:format("~p All Players: ~p~n", [timestamp(), NewPlayers]),
 
@@ -60,7 +64,6 @@ listen(Players)->
 		%	ok,
 
 		{'DOWN', MonitorReference, process, PID, Reason} ->
-		%{'DOWN', __, process, PID, __} ->
 			io:format("~p Process ~p died! Logging out...~n", [timestamp(), PID]),
 
 			NewPlayers = logoutPlayer(Players, PID),
@@ -75,28 +78,36 @@ listen(Players)->
 	end.
 
 % Add a player to the list, if not already there
-loginPlayer([], Username, PID, LoginTicket) ->
-	[{Username, PID, LoginTicket}];
-loginPlayer(Players, Username, PID, LoginTicket) ->
-	{U, _, _} = hd(Players),
+loginPlayer([], Username, Password, PID, LoginTicket) ->
+	{[{Username, Password, PID, LoginTicket}], yes};
+loginPlayer(Players, Username, Password, PID, LoginTicket) ->
+	{U, P, _, _} = hd(Players),
 	if
 		U == Username ->
-			io:format("~p Logging back in player ~p~n", [timestamp(), U]),
-			AltPlayers = Players -- [hd(Players)],
-			AltPlayers ++ [{U, PID, LoginTicket}];
+			% check password
+			if 
+				P == Password ->
+					io:format("~p Logging back in player ~p~n", [timestamp(), U]),
+					AltPlayers = Players -- [hd(Players)],
+					{AltPlayers ++ [{U, P, PID, LoginTicket}], yes};
+				true -> %pw doesn't match
+					{Players, no}
+			end;
 		true ->
-			[hd(Players)]++loginPlayer(tl(Players), Username, PID, LoginTicket)
+			{OtherPlayers, Success} = loginPlayer(tl(Players), Username, Password, PID, LoginTicket),
+			{[hd(Players)]++ OtherPlayers, Success}
 	end.
 
+% Make a player's PID and LoginTicket none, effectively logging out
 logoutPlayer([], PID) ->
 	io:format("~p ERROR: Logout Player with PID ~p not found!~n", [timestamp(), PID]);
 logoutPlayer(Players, PID) ->
-	{U, P, _} = hd(Players),
+	{U, Pw, Pd, _} = hd(Players),
 	if
-		PID == P ->
+		PID == Pd ->
 			io:format("~p Logging out player~p~n",[timestamp(), U]),
 			AltPlayers = Players -- [hd(Players)],
-			AltPlayers ++ [{U, none, none}];
+			AltPlayers ++ [{U, Pw, none, none}];
 		true ->
 			[hd(Players)] ++ logoutPlayer(tl(Players), PID)
 	end.

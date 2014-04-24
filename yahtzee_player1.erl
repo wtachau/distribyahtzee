@@ -52,14 +52,16 @@ login(TManagers, Username, Password, Connections) ->
 	% Get a Tournament Manager and send it login message
 	TManager = list_to_atom(hd(TManagers)),
 	Msg = {login, self(), {Username, Password}},
-	io:format("Trying to login to ~p~n", [TManager]),
+	io:format("~p Trying to login to ~p~n", [timestamp(), TManager]),
 	{yahtzee, TManager} ! Msg,
 
 	% Receive confirmation
 	receive
 		{logged_in, PID, LoginTicket} ->
 			io:format("~p Received logged-in confirmation from ~p with ticket ~p~n",[timestamp(), PID, LoginTicket]),
-			login(tl(TManagers), Username, Password, Connections++[{TManager, PID, LoginTicket}])
+			login(tl(TManagers), Username, Password, Connections++[{TManager, PID, LoginTicket}]);
+		{bad_login, PID, Data} ->
+			io:format("~p Password fail for ~p...~n",[timestamp(), Username])
 	after ?TIMEOUT -> 
 		io:format("Timed out waiting for logged_in reply from ~p!~n", [TManager]),
 		login(tl(TManagers), Username, Password, Connections)
