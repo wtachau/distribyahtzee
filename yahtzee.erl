@@ -8,7 +8,7 @@
 -module(yahtzee).
 
 %% ====================================================================
-%% API functions
+%%   Export functions
 %% ====================================================================
 -export([main/1]).
 
@@ -23,19 +23,34 @@ main(Params) ->
 	register(yahtzee, self()),
 	io:format("~p Registered as node ~p, name ~p, nodes ~p~n", [timestamp(), node(), Name, nodes()]),
 
-	listen([]).
+	listen([], []).
+
+
 
 %% ====================================================================
-%% Internal functions
-%% ===========================`=========================================	
+%%   Helper functions
+%% ====================================================================	
 	
 timestamp() ->
     {_, _, Micros} = now(), 
     {{_, _, _}, {Hour, Min, Sec}} = calendar:now_to_local_time(now()),
     lists:concat([Hour, ":", Min, ":", Sec, ".", Micros]).
 
+
+
+%% ====================================================================
+%%   Listen function
+%% ====================================================================	
+
 % Continuous listening method
-listen(Players)->
+listen(Players, StartRequests)->
+
+	% handle requests, starting new tournament if necessary
+	% NewStartRequests = handle_request(Players, StartRequests),
+	NewStartRequests = StartRequests,
+
+	io:format("~p Requests: ~p~n",[timestamp(), NewStartRequests]),
+
 	receive
 		{login, PID, {Username, Password}} ->
 			io:format("~p Received login from ~p at ~p~n",[timestamp(), Username, PID]),
@@ -56,26 +71,35 @@ listen(Players)->
 			io:format("~p All Players: ~p~n", [timestamp(), NewPlayers]),
 
 			% Remember player
-			listen(NewPlayers);
+			listen(NewPlayers, NewStartRequests);
 
-		%{start_tournament, PID, NumberPlayers} ->
-		%
-		%	% set flag to YES, remember number somehow
-		%	ok,
+		{request_tournament, PID, {NumberPlayers, GamesPerMatch}} ->
+			io:format("~p Received start_tournament message {~p,~p} from ~p, currently ~p players~n", [timestamp(), NumberPlayers, GamesPerMatch, PID, length(Players)]),
+			if
+				NumberPlayers > length(Players) ->
+					io:format("~p Too few players... going to wait~n", [timestamp()]);
+				true ->
+					io:format("~p Enough players! Starting tournament...~n", [timestamp()])
+			end,
+			listen(Players, NewStartRequests ++ [{PID, NumberPlayers, GamesPerMatch}]);			
 
 		{'DOWN', MonitorReference, process, PID, Reason} ->
-			io:format("~p Process ~p died! Logging out...~n", [timestamp(), PID]),
+			io:format("~p Process ~p died because ~p! Logging out ~p...~n", [timestamp(), PID, Reason, MonitorReference]),
 
 			NewPlayers = logoutPlayer(Players, PID),
 
 			io:format("~p All Players: ~p~n", [timestamp(), NewPlayers]),
 
-			listen(NewPlayers);
+			listen(NewPlayers, NewStartRequests);
 
 		{__, PID, __} ->
 			io:format("~p Received unknown message from ~p~n", [timestamp(), PID]),
-			listen(none)
+			listen(Players, NewStartRequests)
 	end.
+
+%% ====================================================================
+%%   Login/Logout functions
+%% ====================================================================	
 
 % Add a player to the list, if not already there
 loginPlayer([], Username, Password, PID, LoginTicket) ->
@@ -112,8 +136,38 @@ logoutPlayer(Players, PID) ->
 			[hd(Players)] ++ logoutPlayer(tl(Players), PID)
 	end.
 
+%% ====================================================================
+%%   Start Tournament functions
+%% ====================================================================	
+
+handle_request(__, []) ->
+	[];
+handle_request(Players, Requests) ->
+	{PID, NumberPlayers, __} = hd(Requests),
+
+	if
+		length(Players) >= NumberPlayers  ->
+			io:format("~p Starting tournament requested by ~p~n", [timestamp(), PID]),
+
+			% Start a tournament!
+			start_tournament(Players, hd(Requests)),
+
+			% and recurse without this request
+			handle_request(Players, tl(Requests));
+		true ->
+			% keep recursing
+			[hd(Requests)] ++ handle_request(Players, tl(Requests))
+	end.
 
 
+start_tournament(Players, {PID, NumberPlayers, GamesPerMatch}) ->
+	%% this makes bracket and sends spawn messages, deletes request
+
+	TwoPlayers = {hd(Players), hd(tl(Players))}, %FIXME - make bracket
+	TID = make_ref(), % FIXME - should be integer?
+
+	% Spawn a match process
+	spawn(yahtzee_mm, play_match, [TwoPlayers, GamesPerMatch, TID]).
 
 
 

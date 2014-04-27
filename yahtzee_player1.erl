@@ -9,7 +9,7 @@
 -define(TIMEOUT, 3000).
 
 %% ====================================================================
-%% API functions
+%%   Main function
 %% ====================================================================
 -export([main/1]).
 
@@ -27,17 +27,15 @@ main(Params) ->
 	%% IMPORTANT: Start the empd daemon!
 	os:cmd("epmd -daemon"),
 	net_kernel:start([list_to_atom(Name), shortnames]),
+	register(yahtzee, self()),
 	% Connect to registry of first tournament manager
-	timer:sleep(1000),
 	io:format("~p Registered as node ~p, with ~p~n", [timestamp(), node(), nodes()]),
-
-
 
 	% login to tournament managers
 	login(TManager, Username, Password, []).
 
 %% ====================================================================
-%% Internal functions
+%%   Internal functions
 %% ===========================`=========================================	
 	
 timestamp() ->
@@ -60,7 +58,7 @@ login(TManagers, Username, Password, Connections) ->
 		{logged_in, PID, LoginTicket} ->
 			io:format("~p Received logged-in confirmation from ~p with ticket ~p~n",[timestamp(), PID, LoginTicket]),
 			login(tl(TManagers), Username, Password, Connections++[{TManager, PID, LoginTicket}]);
-		{bad_login, PID, Data} ->
+		{bad_login, __, __} ->
 			io:format("~p Password fail for ~p...~n",[timestamp(), Username])
 	after ?TIMEOUT -> 
 		io:format("Timed out waiting for logged_in reply from ~p!~n", [TManager]),
@@ -72,10 +70,24 @@ login(TManagers, Username, Password, Connections) ->
 listen(Connections)->
 	io:format("~p listening for messages with connections=~p~n",[timestamp(), Connections]),
 	receive
-		{logged_in, PID, LoginTicket} ->
-			io:format("~p Received logged-in confirmation from ~p with ticket ~p~n",[timestamp(), PID, LoginTicket]),
-			listen(LoginTicket);
-		{__, Pid, Data} ->
+		{start_tournament, PID, TID} ->
+			io:format("~p Received start_tournament request from ~p with TID ~p~n",[timestamp(), PID, TID]),
+
+			%% FIXME: something about accepting tournament (data structures? does it matter?)
+
+			PID ! {accept_tournament, self(), TID},
+			listen(Connections);
+
+		{play_request, PID, {Ref, TID, GID, TurnNumber, RollNumber, DiceList, Scorecard, OppScorecard}} ->
+			io:format("~p Received play_request from ~p~n", [timestamp(), PID]),
+
+			%FIXME: how do we come up with DiceToKeep, ScorecardLine?
+			
+			PID ! {play_action, self(), {Ref, TID, GID, RollNumber, DiceList, 4}},
+
+			listen(Connections);
+
+		{__, __, __} ->
 			io:format("~p Received unknown message~n", [timestamp()]),
 			listen(none)
 	end.
