@@ -46,8 +46,7 @@ timestamp() ->
 listen(Players, StartRequests)->
 
 	% handle requests, starting new tournament if necessary
-	% NewStartRequests = handle_request(Players, StartRequests),
-	NewStartRequests = StartRequests,
+	NewStartRequests = handle_request(Players, StartRequests),
 
 	io:format("~p Requests: ~p~n",[timestamp(), NewStartRequests]),
 
