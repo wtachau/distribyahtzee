@@ -128,11 +128,9 @@ play_a_game(Player1, Player2, Scorecard1, Scorecard2, TurnNumber, GID, TID) ->
 
 	io:format(">> Dice rolled for turn ~p: ~p~n", [TurnNumber, AllDice]), %fixme: take out
 
-	% used in handle_turn to keep track of which dice are kept
-	MyDice = [0,0,0,0,0], 
 	% get turn from player 1, then player 2
-	NewScorecard1 = handle_turn(Player1, TurnNumber, 1, Scorecard1, Scorecard2, GID, TID, AllDice, MyDice),
-	NewScorecard2 = handle_turn(Player2, TurnNumber, 1, Scorecard2, Scorecard1, GID, TID, AllDice, MyDice),
+	NewScorecard1 = handle_turn(Player1, TurnNumber, 1, Scorecard1, Scorecard2, GID, TID, AllDice, hd(AllDice)),
+	NewScorecard2 = handle_turn(Player2, TurnNumber, 1, Scorecard2, Scorecard1, GID, TID, AllDice, hd(AllDice)),
 
 	play_a_game(Player1, Player2, NewScorecard1, NewScorecard2, TurnNumber + 1, GID, TID).
 
@@ -140,15 +138,13 @@ play_a_game(Player1, Player2, Scorecard1, Scorecard2, TurnNumber, GID, TID) ->
 % Handle a turn. 
 handle_turn(_, _, 4, Scorecard, _, _, _, _, _) ->
 	Scorecard;
-handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, AllDice, KeptDice) ->
-
-	DiceList = lists:nth(RollNumber, AllDice),
+handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, AllDice, DiceAvailable) ->
 
 	{Username, _, PID, _} = Player,
 	Ref = make_ref(),
 	% send message to player
-	io:format("~p (MatchManager:) Sending play_request to ~p on turn #~p, with dice ~p~n", [timestamp(), Username, TurnNumber, DiceList]),
-	PID ! {play_request, self(), {Ref, TID, GID, TurnNumber, RollNumber, DiceList, Scorecard, OppScorecard}},
+	io:format("~p (MatchManager:) Sending play_request to ~p on turn #~p, with dice ~p~n", [timestamp(), Username, TurnNumber, DiceAvailable]),
+	PID ! {play_request, self(), {Ref, TID, GID, TurnNumber, RollNumber, DiceAvailable, Scorecard, OppScorecard}},
 	
 	receive
 		{play_action, P1, {RRef, RTID, RGID, RRollNumber, DiceToKeep, ScorecardLine}} ->
@@ -158,17 +154,17 @@ handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, A
 			if
 				ScorecardLine > 0 ->
 
-					IsLegalMove = isLegal(Scorecard, ScorecardLine, DiceToKeep, KeptDice),
+					% Check that this move is legal. If so, return value. If not, -1
+					ValueOfMove = value_move(Scorecard, ScorecardLine, DiceAvailable),
 					if
-						IsLegalMove == true ->
-							% FIXME: determine what value goes in that scorecard spot
-							Value = 5,
+						ValueOfMove >= 0 ->
 
 							% Update scorecard accordingly
-							NewScorecard = lists:sublist(Scorecard,ScorecardLine-1) ++ [Value] ++ lists:nthtail(ScorecardLine,Scorecard),
+							NewScorecard = lists:sublist(Scorecard,ScorecardLine-1) ++ [ValueOfMove] ++ lists:nthtail(ScorecardLine,Scorecard),
 
 							io:format("~p (MatchManager:) Player ~p ending turn with Scorecard = ~p~n", [timestamp(), Username, NewScorecard]),
 							NewScorecard;
+
 						true -> %FIXME cheating!
 							io:format("~p (MatchManager:) ERROR: Not a legal move from ~p~n", [timestamp(), Username]),
 							Scorecard
@@ -177,13 +173,15 @@ handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, A
 				true ->
 					if
 						RollNumber == 3 ->
-							ok;
 							%FIXME: violation of the protocol, what to do?
+							io:format("~p (MatchManager:) ERROR: Last roll must return scorecard selection ~p~n", [timestamp(), Username]);
 						true ->
-							% make mydice depending on dicetokeep
-							NewKeptDice = getNewDice(DiceList, KeptDice, DiceToKeep),
-							io:format("~p (MatchManager:) Player ~p keeping dice ~p~n", [timestamp(), Username, NewKeptDice]),
-							handle_turn(Player, TurnNumber, RollNumber+1, Scorecard, OppScorecard, GID, TID, AllDice, NewKeptDice)
+							
+							% Generate next dice values available to player
+							NextDice = lists:nth(RollNumber+1, AllDice),
+							NewDice = getNewDice(NextDice, DiceAvailable, DiceToKeep),
+							io:format("~p (MatchManager:) Player ~p keeping dice ~p~n", [timestamp(), Username, NewDice]),
+							handle_turn(Player, TurnNumber, RollNumber+1, Scorecard, OppScorecard, GID, TID, AllDice, NewDice)
 					end	
 			end
 
@@ -191,9 +189,18 @@ handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, A
 		io:format("(MatchManager:) Timed out waiting for play_action reply from ~p!~n", [Username])
 	end.
 
+
+
+%% ====================================================================
+%%   Helper functions
+%% ====================================================================	
+
+
 % Given a scorecard, return proper sum
-total(Scorecard) ->
-	0. %fixme
+total([]) ->
+	0;
+total([FirstScore|Rest]) ->
+	FirstScore + total(Rest). %fixme
 
 
 % Given the new dice, dice already kept, and a list of booleans, generate new kept dice
@@ -208,15 +215,15 @@ getNewDice([FNewRoll|RNewRoll], [FDiceKept|RDiceKept], [FKeep|RKeep]) ->
 	end.
 
 % Determine if a move is legal
-isLegal(Scorecard, ScorecardLine, DiceToKeep, KeptDice) ->
+value_move(Scorecard, ScorecardLine, Dice) ->
 	% is that scorecard line already full?
 	ChosenSpotVal = lists:nth(ScorecardLine, Scorecard),
 	if
 		ChosenSpotVal > 0 ->
 			io:format("~p (MatchManager:) ERROR: Scorecard spot ~p already taken~n", [timestamp(), ScorecardLine]),
-			false;
+			-1;
 		true ->
-			true
+			5 %FIXME
 	end.
 
 

@@ -20,7 +20,7 @@ main(Params) ->
 	%% IMPORTANT: Start the empd daemon!
 	os:cmd("epmd -daemon"),
 	net_kernel:start([list_to_atom(Name), shortnames]),
-	register(yahtzee, self()),
+	register(yahtzee_manager, self()),
 	io:format("~p Registered as node ~p, name ~p, nodes ~p~n", [timestamp(), node(), Name, nodes()]),
 
 	listen([], []).
