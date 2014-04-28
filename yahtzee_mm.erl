@@ -9,6 +9,7 @@
 %%   Main function
 %% ====================================================================
 -compile(export_all).
+-import(yahtzee_lib, [get_total_of/2, get_total/1, get_score_for/2, in_small_straight/2, in_straight/1, get_min/2, get_max/2, get_most_common/1, most_common/2, get_frequency/1, add_freq/2]).
 
 main() ->
 	% Listen for tournament manager (so can get return info)
@@ -99,8 +100,8 @@ play_games(Player1, Player2, NumGamesLeft, NumGamesTotal, TID) ->
 	{Scorecard1, Scorecard2} = play_a_game(Player1, Player2, S1, S2, 0, GID, TID),
 
 	% total up scorecards
-	Sum1 = total(Scorecard1),
-	Sum2 = total(Scorecard2),
+	Sum1 = scorecard_total(Scorecard1),
+	Sum2 = scorecard_total(Scorecard2),
 
 	io:format("~p (MatchManager:) *!* Game ~p: ~p got ~p, ~p got ~p~n", [timestamp(), (NumGamesTotal-NumGamesLeft), Username1, Sum1, Username2, Sum2]),
 
@@ -124,7 +125,7 @@ play_a_game(_, _, Scorecard1, Scorecard2, 13, _, _) ->
 play_a_game(Player1, Player2, Scorecard1, Scorecard2, TurnNumber, GID, TID) ->
 
 	% FIXME: Generate Dice randomly
-	AllDice = [[1,2,3,4,5], [6,7,8,9,10], [11,12,13,14,15]],
+	AllDice = get_dice_roll(),
 
 	io:format(">> Dice rolled for turn ~p: ~p~n", [TurnNumber, AllDice]), %fixme: take out
 
@@ -149,7 +150,7 @@ handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, A
 	receive
 		{play_action, P1, {RRef, RTID, RGID, RRollNumber, DiceToKeep, ScorecardLine}} ->
 
-			io:format("~p (MatchManager:) Received play_action message from ~p ~n",[timestamp(), Username]),
+			io:format("~p (MatchManager:) Received play_action message from ~p: Keeping ~p, scorecard #~p ~n",[timestamp(), Username, DiceToKeep, ScorecardLine]),
 
 			if
 				ScorecardLine > 0 ->
@@ -195,12 +196,25 @@ handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, A
 %%   Helper functions
 %% ====================================================================	
 
+scorecard_total(Scorecard) ->
+	UpperSection = lists:sublist(Scorecard,6),
+	LowerSection = lists:sublist(lists:nthtail(6,Scorecard),6),
+	UpperTotal = total(UpperSection),
+	LowerTotal = total(LowerSection),
+	io:format("Upper: ~p, Lower:~p~n",[UpperSection, LowerSection]),
+	if
+		UpperTotal >= 63 ->
+			UpperTotal + LowerTotal + 35;
+		true ->
+			UpperTotal + LowerTotal
+	end.
+
 
 % Given a scorecard, return proper sum
 total([]) ->
 	0;
 total([FirstScore|Rest]) ->
-	FirstScore + total(Rest). %fixme
+	FirstScore + total(Rest).
 
 
 % Given the new dice, dice already kept, and a list of booleans, generate new kept dice
@@ -208,7 +222,7 @@ getNewDice([], _, _) ->
 	[];
 getNewDice([FNewRoll|RNewRoll], [FDiceKept|RDiceKept], [FKeep|RKeep]) ->
 	if
-		FKeep == true ->
+		FKeep == false ->
 			[FNewRoll] ++ getNewDice(RNewRoll, RDiceKept, RKeep);
 		true ->
 			[FDiceKept] ++ getNewDice(RNewRoll, RDiceKept, RKeep)
@@ -223,9 +237,24 @@ value_move(Scorecard, ScorecardLine, Dice) ->
 			io:format("~p (MatchManager:) ERROR: Scorecard spot ~p already taken~n", [timestamp(), ScorecardLine]),
 			-1;
 		true ->
-			5 %FIXME
+			get_score_for(ScorecardLine, Dice)
 	end.
 
+% return a set of three dice rolls
+get_dice_roll() ->
+	Set1 = get_dice_set(),
+	Set2 = get_dice_set(),
+	Set3 = get_dice_set(),
+	[Set1, Set2, Set3].
+
+get_dice_set() ->
+	random:seed(now()),
+	Die1 = round(random:uniform(5)) + 1,
+	Die2 = round(random:uniform(5)) + 1,
+	Die3 = round(random:uniform(5)) + 1,
+	Die4 = round(random:uniform(5)) + 1,
+	Die5 = round(random:uniform(5)) + 1,
+	[Die1, Die2, Die3, Die4, Die5].
 
 
 

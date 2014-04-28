@@ -3,6 +3,7 @@
 %% Usage:
 %% erl -compile yahtzee
 %% erl -noshell -run yahtzee main tm1 -run init stop -noshell
+%% {yahtzee_manager, list_to_atom("tm1@<host>")} ! {request_tournament, self(), {2, 3}}.
 %%
 
 -module(yahtzee).
