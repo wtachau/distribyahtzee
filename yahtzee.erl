@@ -91,7 +91,12 @@ listen(Players, StartRequests)->
 
 			listen(NewPlayers, NewStartRequests);
 
-		{__, PID, __} ->
+		% FIXME -> HOW IS BRACKET STORED, AND HOW IS THIS SAVED?
+		{tournament_result, PID, {Winner, TID}} ->
+			io:format("~p Got result of match from tournament ~p, ~p won~n", [timestamp(), TID, Winner]),
+			listen(Players, NewStartRequests);
+
+		{_, PID, _} ->
 			io:format("~p Received unknown message from ~p~n", [timestamp(), PID]),
 			listen(Players, NewStartRequests)
 	end.
@@ -139,14 +144,14 @@ logoutPlayer(Players, PID) ->
 %%   Start Tournament functions
 %% ====================================================================	
 
-handle_request(__, []) ->
+handle_request(_, []) ->
 	[];
 handle_request(Players, Requests) ->
-	{PID, NumberPlayers, __} = hd(Requests),
+	{PID, NumberPlayers, _} = hd(Requests),
 
 	if
 		length(Players) >= NumberPlayers  ->
-			io:format("~p Starting tournament requested by ~p~n", [timestamp(), PID]),
+			io:format("~p Tournament Manager: Starting tournament requested by ~p~n", [timestamp(), PID]),
 
 			% Start a tournament!
 			start_tournament(Players, hd(Requests)),
@@ -166,8 +171,9 @@ start_tournament(Players, {PID, NumberPlayers, GamesPerMatch}) ->
 	TID = make_ref(), % FIXME - should be integer?
 
 	% Spawn a match process
-	spawn(yahtzee_mm, play_match, [TwoPlayers, GamesPerMatch, TID]).
-
+	%spawn(yahtzee_mm, play_match, [TwoPlayers, GamesPerMatch, TID]).
+	MM = spawn(yahtzee_mm, main, []),
+	MM ! {start_match, self(), {TwoPlayers, GamesPerMatch, TID}}.
 
 
 

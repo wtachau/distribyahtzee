@@ -83,7 +83,7 @@ listen(Connections)->
 
 			%FIXME: how do we come up with DiceToKeep, ScorecardLine?
 			
-			PID ! {play_action, self(), {Ref, TID, GID, RollNumber, DiceList, 4}},
+			PID ! {play_action, self(), {Ref, TID, GID, RollNumber, [1,0,0,0,0], 4}},
 
 			listen(Connections);
 
