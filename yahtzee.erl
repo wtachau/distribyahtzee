@@ -7,11 +7,12 @@
 %%
 
 -module(yahtzee).
+-define(TIMEOUT, 3000).
 
 %% ====================================================================
 %%   Export functions
 %% ====================================================================
--export([main/1]).
+-compile(export_all).
 
 main(Params) ->
 
@@ -44,12 +45,9 @@ timestamp() ->
 %% ====================================================================	
 
 % Continuous listening method
-listen(Players, StartRequests)->
+listen(Players, Tournaments)->
 
-	% handle requests, starting new tournament if necessary
-	NewStartRequests = handle_request(Players, StartRequests),
-
-	io:format("~p Requests: ~p~n",[timestamp(), NewStartRequests]),
+	io:format("~p Listening with Tournaments:~n ~p~n", [timestamp(), Tournaments]),
 
 	receive
 		{login, PID, {Username, Password}} ->
@@ -71,17 +69,12 @@ listen(Players, StartRequests)->
 			io:format("~p All Players: ~p~n", [timestamp(), NewPlayers]),
 
 			% Remember player
-			listen(NewPlayers, NewStartRequests);
+			listen(NewPlayers, Tournaments);
 
 		{request_tournament, PID, {NumberPlayers, GamesPerMatch}} ->
 			io:format("~p Received start_tournament message {~p,~p} from ~p, currently ~p players~n", [timestamp(), NumberPlayers, GamesPerMatch, PID, length(Players)]),
-			if
-				NumberPlayers > length(Players) ->
-					io:format("~p Too few players... going to wait~n", [timestamp()]);
-				true ->
-					io:format("~p Enough players! Starting tournament...~n", [timestamp()])
-			end,
-			listen(Players, NewStartRequests ++ [{PID, NumberPlayers, GamesPerMatch}]);			
+			{TID, Winner, GamesPer, NewBracket} = start_tournament(Players, {PID, NumberPlayers, GamesPerMatch}),
+			listen(Players, Tournaments ++ [{TID, Winner, GamesPer, NewBracket}]);			
 
 		{'DOWN', MonitorReference, process, PID, Reason} ->
 			io:format("~p Process ~p died because ~p! Logging out ~p...~n", [timestamp(), PID, Reason, MonitorReference]),
@@ -90,16 +83,17 @@ listen(Players, StartRequests)->
 
 			io:format("~p All Players: ~p~n", [timestamp(), NewPlayers]),
 
-			listen(NewPlayers, NewStartRequests);
+			listen(NewPlayers, Tournaments);
 
 		% FIXME -> HOW IS BRACKET STORED, AND HOW IS THIS SAVED?
-		{tournament_result, PID, {Winner, TID}} ->
-			io:format("~p Got result of match from tournament ~p, ~p won~n", [timestamp(), TID, Winner]),
-			listen(Players, NewStartRequests);
+		{tournament_result, _, {Winner, TID, MID}} ->
+			io:format("~p Got result of match #~p from tournament ~p, ~p won~n", [timestamp(), MID, TID, Winner]),
+			UpdatedTournaments = update_tournaments(Tournaments, MID, TID, Winner),
+			listen(Players, UpdatedTournaments);
 
 		{_, PID, _} ->
 			io:format("~p Received unknown message from ~p~n", [timestamp(), PID]),
-			listen(Players, NewStartRequests)
+			listen(Players, Tournaments)
 	end.
 
 %% ====================================================================
@@ -145,36 +139,161 @@ logoutPlayer(Players, PID) ->
 %%   Start Tournament functions
 %% ====================================================================	
 
-handle_request(_, []) ->
-	[];
-handle_request(Players, Requests) ->
-	{PID, NumberPlayers, _} = hd(Requests),
-
-	if
-		length(Players) >= NumberPlayers  ->
-			io:format("~p Tournament Manager: Starting tournament requested by ~p~n", [timestamp(), PID]),
-
-			% Start a tournament!
-			start_tournament(Players, hd(Requests)),
-
-			% and recurse without this request
-			handle_request(Players, tl(Requests));
-		true ->
-			% keep recursing
-			[hd(Requests)] ++ handle_request(Players, tl(Requests))
-	end.
-
-
 start_tournament(Players, {PID, NumberPlayers, GamesPerMatch}) ->
+	
 	%% this makes bracket and sends spawn messages, deletes request
 
-	TwoPlayers = {hd(Players), hd(tl(Players))}, %FIXME - make bracket
-	TID = make_ref(), % FIXME - should be integer?
+	{_, Secs, Micros} = now(), 
+	TID = Secs * Micros,  % semi-unique TID
+	io:format("~p Tournament Manager: Starting tournament #~p requested by ~p~n", [timestamp(), TID, PID]),
 
-	% Spawn a match process
-	%spawn(yahtzee_mm, play_match, [TwoPlayers, GamesPerMatch, TID]).
+	% Figure out how many players in tournament (NumberPlayers may not be of form 2^k)
+	Total = get_num_players(NumberPlayers, 1),
+	%Levels = log2(Total),
+
+	% Generate list of players, with appropriate # of byes
+	PlayersWithByes = get_player_list(Players, Total, TID),
+
+	Bracket = make_bracket(PlayersWithByes, TID, GamesPerMatch),
+
+	io:format("~p Bracket: ~p~n", [timestamp(), Bracket]),
+	{TID, none, GamesPerMatch, Bracket}.
+
+%log2(X) ->
+%  math:log(X) / math:log(2).
+
+
+%% ====================================================================
+%%   Functions to make bracket
+%% ====================================================================
+
+% Structure a bracket as a list of games, and start first games
+make_bracket(AllPlayers, TID, GamesPerMatch) ->
+	HalfNumPlayers = round(length(AllPlayers)/2),
+	NoneBracket =get_empties(HalfNumPlayers - 1),
+	RestBracket = get_tuples(AllPlayers, HalfNumPlayers, TID, GamesPerMatch),
+	NoneBracket ++ RestBracket.
+
+% Get unplayed games
+get_empties(0) ->
+	[];
+get_empties(Num) ->
+	get_empties(Num-1) ++ [{Num, none, none}].
+
+% Schedule first round. ** Also start matches
+get_tuples([], _, _, _) ->
+	[];
+get_tuples([Player1|Players], Num, TID, GamesPerMatch) ->
+	Player2 = hd(Players),
+	start_match({Player1, Player2}, GamesPerMatch, TID, Num),
+	[{Num, Player1, Player2}] ++ get_tuples(tl(Players), Num+1, TID, GamesPerMatch).
+
+
+
+%% ====================================================================
+%%   Generate Player List
+%% ====================================================================
+
+% Return next highest number of form 2^k
+get_num_players(Num, SoFar)->
+	if
+		SoFar >= Num ->
+			SoFar;
+		true ->
+			get_num_players(Num, SoFar * 2)
+	end.
+
+ get_player_list(Players, Total, TID) ->
+ 	ConfirmedPlayers = get_confirmed_players(Players, Total, TID),
+ 	io:format("~p Confirmed players: ~p~n", [timestamp(), ConfirmedPlayers]),
+ 	get_full_list(ConfirmedPlayers, Total).
+
+ 
+% iterate through Players, call for confirmation
+get_confirmed_players([], _, _) ->
+	[];
+get_confirmed_players(_, 0, _) ->
+	[];
+get_confirmed_players(Players, Total, TID) ->
+	% send conf messages
+	{Username1, _, PID, _} = hd(Players),
+	if
+		PID == none -> %% user is logged out!
+			get_confirmed_players(tl(Players), Total, TID);
+		true ->
+			PID ! {start_tournament, self(), TID},
+			% Receive confirmation
+			receive
+				{accept_tournament, _, _} ->
+					io:format("~p Received accept_tournament confirmation from ~p ~n",[timestamp(), Username1]),
+					[hd(Players)] ++ get_confirmed_players(tl(Players), Total-1, TID)
+			after ?TIMEOUT -> 
+				io:format("~p Timed out waiting for accept_tournament reply from ~p!~n", [timestamp(), Username1]),
+				get_confirmed_players(tl(Players), Total, TID)
+			end
+	end.
+
+ 	
+% Generate list of players, with byes randomly inserted where necessary 
+get_full_list([Player], 2) ->
+	[bye, Player];
+get_full_list(Players, 2) ->
+	Players;
+get_full_list(Players, TotalNum) ->
+	LenRealPlayers = length(Players),
+	LenFirstHalf = round(LenRealPlayers/2),
+	FirstHalfPlayers = lists:sublist(Players, LenFirstHalf),
+	SecondHalfPlayers = lists:nthtail(LenFirstHalf, Players),
+	FirstHalfList = get_full_list(FirstHalfPlayers, round(TotalNum/2)),
+	SecondHalfList = get_full_list(SecondHalfPlayers, round(TotalNum/2)),
+	FirstHalfList ++ SecondHalfList.
+
+
+%% ====================================================================
+%%   Start a match!
+%% ====================================================================
+
+start_match(TwoPlayers, GamesPerMatch, TID, MID) ->
+	% Spawn a match process %fixme = in bracket call
 	MM = spawn(yahtzee_mm, main, []),
-	MM ! {start_match, self(), {TwoPlayers, GamesPerMatch, TID}}.
+	MM ! {start_match, self(), {TwoPlayers, GamesPerMatch, TID, MID}}.
+
+
+%% ====================================================================
+%%   Update tournaments, and start other match if necessary
+%% ====================================================================
+
+% Find tournament with correct TID, and update
+update_tournaments([], _, _, _) ->
+	[];
+update_tournaments(Tournaments, MID, TID, Winner) ->
+	{T, W, G, B} = hd(Tournaments),
+	if
+		T == TID ->
+			{UpdatedBracket, NewWinner} = update_tournament(B, MID, Winner, G, T),
+			[{T, NewWinner, G, UpdatedBracket}] ++ tl(Tournaments);
+		true ->
+			[{T, W, G, B}] ++ update_tournaments(tl(Tournaments), MID, TID, Winner)
+	end.
+
+% Update bracket with winner, start next match if appropriate
+update_tournament(Bracket, 1, Winner, _, TID) ->
+	io:format("~p Player ~p wins tournament ~p!!~n", [timestamp(), Winner, TID]),
+	{Bracket, Winner};
+update_tournament(Bracket, MID, Winner, GamesPerMatch, TID) ->
+	NextRoundNum = round((MID-1)/2),
+	NextRound = lists:nth(NextRoundNum, Bracket),
+	UpdatedRound = update_round(NextRound, Winner, GamesPerMatch, TID),
+	{lists:sublist(Bracket,NextRoundNum-1) ++ [UpdatedRound] ++ lists:nthtail(NextRoundNum,Bracket), none}.
+
+% Add players to a match. If two, start the match!
+update_round({Num, none, none}, Player1, _, _) ->
+	{Num, Player1, none};
+update_round({Num, Player1, none}, Player2, GamesPerMatch, TID) ->
+	% start the match
+	start_match({Player1, Player2}, GamesPerMatch, TID, Num),
+	{Num, Player1, Player2}.
+
 
 
 

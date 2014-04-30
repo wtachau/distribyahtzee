@@ -14,57 +14,48 @@
 main() ->
 	% Listen for tournament manager (so can get return info)
 	receive
-		{start_match, PID, {{Player1, Player2}, NumGames, TID}} ->
-			io:format("~p (MatchManager:) Received start_match confirmation from ~p ~n",[timestamp(), PID]),
-		play_match({Player1, Player2}, NumGames, TID, PID)
+		{start_match, PID, {{Player1, Player2}, NumGames, TID, MID}} ->
+			io:format("~p (MatchManager:) Received start_match message from Tournament Manager ~n",[timestamp()]),
+		play_match({Player1, Player2}, NumGames, TID, PID, MID)
 
 	after ?TIMEOUT -> 
 		io:format("~p (MatchManager:) Timed out waiting for start_match message~n", [timestamp()])
 	end.
 
-play_match({Player1, Player2}, NumGames, TID, TournamentPID) ->
-	{Username1, _, PID1, _} = Player1,
-	{Username2, _, PID2, _} = Player2,
+% Play a match as determined by yahztee tournament manager
+play_match({bye, Player2}, _, TID, TournamentPID, MID) ->
+	{Username, _, _, _} = Player2,
+	io:format("~p (MatchManager:) Player ~p wins against bye!~n", [timestamp(), Username]),
+	TournamentPID ! {tournament_result, self(), {Player2, TID, MID}};
 
-	%FIXME - these should go in tournament manager!
+play_match({Player1, bye}, _, TID, TournamentPID, MID) ->
+	{Username, _, _, _} = Player1,
+	io:format("~p (MatchManager:) Player ~p wins against bye!~n", [timestamp(), Username]),
+	TournamentPID ! {tournament_result, self(), {Player1, TID, MID}};
 
-	io:format("~p (MatchManager:) Sending start_tournament messages to ~p and ~p~n", [timestamp(), Username1, Username2]),
+play_match({bye, bye}, _, TID, TournamentPID, MID) ->
+	io:format("~p (MatchManager:) Bye wins against bye!~n", [timestamp()]),
+	TournamentPID ! {tournament_result, self(), {bye, TID, MID}};
 
-	% send conf messages
-	PID1 ! {start_tournament, self(), TID},
-	% Receive confirmation
-	receive
-		{accept_tournament, P1, _} ->
-			io:format("~p (MatchManager:) Received accept_tournament confirmation from ~p ~n",[timestamp(), P1])
-	after ?TIMEOUT -> 
-		io:format("~p (MatchManager:) Timed out waiting for accept_tournament reply from ~p!~n", [timestamp(), PID1])
-	end,
-
-	% send conf messages
-	PID2 ! {start_tournament, self(), TID},
-	% Receive confirmation
-	receive
-		{accept_tournament, P2, _} ->
-			io:format("~p (MatchManager:) Received accept_tournament confirmation from ~p ~n",[timestamp(), P2])
-	after ?TIMEOUT -> 
-		io:format("~p (MatchManager:) Timed out waiting for accept_tournament reply from ~p!~n", [timestamp(), PID2])
-	end,
+play_match({Player1, Player2}, NumGames, TID, TournamentPID, MID) ->
+	{Username1, _, _, _} = Player1,
+	{Username2, _, _, _} = Player2,
 
 	io:format("~p (MatchManager:) Starting with ~p vs ~p, ~p games~n", [timestamp(), Username1, Username2, NumGames]),
 
 	% Now start games!
 	{Score1, Score2} = play_games(Player1, Player2, NumGames, NumGames, TID),
 
-	io:format("~p (MatchManager:) *!*!* Final Score--> Player ~p:~p, Player ~p:~p~n", [timestamp(), Username1, Score1, Username2, Score2]),
+	io:format("~n~n~p (MatchManager:) *!*!* Final Score--> Player ~p:~p, Player ~p:~p~n", [timestamp(), Username1, Score1, Username2, Score2]),
 
 	% Determine winner and send back to tournament manager
 	if
 		Score1 > Score2 ->
 			io:format("~p (MatchManager:) Player ~p wins!~n", [timestamp(), Username1]),
-			TournamentPID ! {tournament_result, self(), {Player1, TID}};
+			TournamentPID ! {tournament_result, self(), {Player1, TID, MID}};
 		true ->
 			io:format("~p (MatchManager:) Player ~p wins!~n", [timestamp(), Username2]),
-			TournamentPID ! {tournament_result, self(), {Player2, TID}}
+			TournamentPID ! {tournament_result, self(), {Player2, TID, MID}}
 	end.
 
 %% ====================================================================
@@ -103,7 +94,7 @@ play_games(Player1, Player2, NumGamesLeft, NumGamesTotal, TID) ->
 	Sum1 = scorecard_total(Scorecard1),
 	Sum2 = scorecard_total(Scorecard2),
 
-	io:format("~p (MatchManager:) *!* Game ~p: ~p got ~p, ~p got ~p~n", [timestamp(), (NumGamesTotal-NumGamesLeft), Username1, Sum1, Username2, Sum2]),
+	io:format("~p (MatchManager:) *!* Game ~p: ~p got ~p, ~p got ~p~n~n", [timestamp(), (NumGamesTotal-NumGamesLeft), Username1, Sum1, Username2, Sum2]),
 
 	% And Recurse
 	{Score1, Score2} = play_games(Player1, Player2, NumGamesLeft-1, NumGamesTotal, TID),
@@ -144,13 +135,14 @@ handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, A
 	{Username, _, PID, _} = Player,
 	Ref = make_ref(),
 	% send message to player
-	io:format("~p (MatchManager:) Sending play_request to ~p on turn #~p, with dice ~p~n", [timestamp(), Username, TurnNumber, DiceAvailable]),
+	io:format("~p (MatchManager:) Sending play_request to ~p on turn #~p, with:~n\t\t\t>> dice ~p~n", [timestamp(), Username, TurnNumber, DiceAvailable]),
 	PID ! {play_request, self(), {Ref, TID, GID, TurnNumber, RollNumber, DiceAvailable, Scorecard, OppScorecard}},
 	
 	receive
-		{play_action, P1, {RRef, RTID, RGID, RRollNumber, DiceToKeep, ScorecardLine}} ->
+		% {play_action, P1, {RRef, RTID, RGID, RRollNumber, DiceToKeep, ScorecardLine}} ->
+		{play_action, _, {_, _, _, _, DiceToKeep, ScorecardLine}} ->
 
-			io:format("~p (MatchManager:) Received play_action message from ~p: Keeping ~p, scorecard #~p ~n",[timestamp(), Username, DiceToKeep, ScorecardLine]),
+			io:format("~p (MatchManager:) Received play_action message from ~p:~n\t\t\t>> Keeping ~p, scorecard #~p ~n",[timestamp(), Username, DiceToKeep, ScorecardLine]),
 
 			if
 				ScorecardLine > 0 ->
@@ -163,7 +155,7 @@ handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, A
 							% Update scorecard accordingly
 							NewScorecard = lists:sublist(Scorecard,ScorecardLine-1) ++ [ValueOfMove] ++ lists:nthtail(ScorecardLine,Scorecard),
 
-							io:format("~p (MatchManager:) Player ~p ending turn with Scorecard = ~p~n", [timestamp(), Username, NewScorecard]),
+							io:format("~p (MatchManager:) Player ~p ending turn with: ~n\t\t\t>> Scorecard = ~p~n", [timestamp(), Username, NewScorecard]),
 							NewScorecard;
 
 						true -> %FIXME cheating!
@@ -201,7 +193,7 @@ scorecard_total(Scorecard) ->
 	LowerSection = lists:sublist(lists:nthtail(6,Scorecard),6),
 	UpperTotal = total(UpperSection),
 	LowerTotal = total(LowerSection),
-	io:format("Upper: ~p, Lower:~p~n",[UpperSection, LowerSection]),
+	io:format("Upper: ~p [~p], Lower:~p [~p]~n",[UpperSection, UpperTotal, LowerSection, LowerTotal]),
 	if
 		UpperTotal >= 63 ->
 			UpperTotal + LowerTotal + 35;
