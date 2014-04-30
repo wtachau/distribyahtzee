@@ -12,7 +12,18 @@
 %%   Main function
 %% ====================================================================
 -compile(export_all).
--import(yahtzee_lib, [get_total_of/2, get_total/1, get_score_for/2, in_small_straight/2, in_straight/1, get_min/2, get_max/2, get_most_common/1, most_common/2, get_frequency/1, add_freq/2]).
+-import(yahtzee_lib, [get_total_of/2, 
+					get_total/1, 
+					get_score_for/2, 
+					in_small_straight/2, 
+					in_straight/1, 
+					get_min/2, 
+					get_max/2, 
+					get_most_common/1, 
+					most_common/2, 
+					get_frequency/1, 
+					add_freq/2,
+					make_decision/2]).
 
 main(Params) ->
 
@@ -121,7 +132,7 @@ make_a_move(Scorecard, Dice, RollNumber) ->
 			{Decision, Score} = make_decision(1, Scorecard, Dice),
 			{Dice, Decision};
 		true ->
-			% If we can already return something (i.e. a large straight, yahtzee)
+			% If we can already return something (i.e. a large straight, yahtqzee)
 			ShouldReturn = should_return_now(Scorecard, Dice),
 			if
 				ShouldReturn >= 1 ->
@@ -195,16 +206,16 @@ should_return_now(Scorecard, Dice) ->
 
 % Decide which dice to keep (return list of booleans)
 keep_dice(Dice, Scorecard, RollNumber) ->
-	% FIXME - strategy!
-	Keep1 = get_random_die(6),
-	Keep2 = get_random_die(2),
-	Keep3 = get_random_die(12),
-	Keep4 = get_random_die(2),
-	Keep5 = get_random_die(7),
-	[Keep1, Keep2, Keep3, Keep4, Keep5].
+if 
+	RollNumber =:= 1 ->
+		make_decision(Dice, Scorecard);
+	RollNumber =:= 2 ->
+		make_decision(Dice, Scorecard);
+	true ->
+		make_decision(Dice, Scorecard).
 
-get_random_die(Seed) ->
-	random:seed(Seed),
+get_random_die() ->
+	random:seed(now()),
 	Rand = round(random:uniform()),
 	if
 		Rand == 1 ->
@@ -212,6 +223,9 @@ get_random_die(Seed) ->
 		true ->
 			false
 	end.
+
+
+
 
 
 
