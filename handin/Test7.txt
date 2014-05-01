@@ -1,0 +1,185 @@
+—— BOTH PLAYERS LOG IN ——— 
+
+
+"13:51:59.828633" Received login from "u" at <5388.2.0>
+"13:51:59.828741" All Players: [{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}]
+"13:51:59.828839" Listening with Tournaments:
+ []
+ And Players:
+[{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}]
+"13:52:2.167015" Received login from "u2" at <5389.2.0>
+"13:52:2.167129" All Players: [{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+                               {"u2","p2",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}]
+"13:52:2.167262" Listening with Tournaments:
+ []
+ And Players:
+[{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+ {"u2","p2",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}]
+"13:52:10.130453" Received start_tournament message {2,3} from <5390.38.0>, currently 2 players
+"13:52:10.130636" Tournament Manager: Starting tournament #127699631550 requested by <5390.38.0>
+"13:52:10.131314" Received accept_tournament confirmation from "u" 
+"13:52:10.131909" Received accept_tournament confirmation from "u2" 
+"13:52:10.131975" Confirmed players: [{"u","p",0,0,0,[],<5388.2.0>,
+                                       #Ref<0.0.0.44>},
+                                      {"u2","p2",0,0,0,[],<5389.2.0>,
+                                       #Ref<0.0.0.62>}]
+[{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+ {"u2","p2",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}]
+"13:52:10.132187" Bracket: [{1,
+                             {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+                             {"u2","p2",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}}]
+"13:52:10.132321" Listening with Tournaments:
+ [{127699631550,none,3,
+   [{1,
+     {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+     {"u2","p2",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}}]}]
+ And Players:
+[{"u","p",0,0,0,[127699631550],<5388.2.0>,#Ref<0.0.0.44>},
+ {"u2","p2",0,0,0,[127699631550],<5389.2.0>,#Ref<0.0.0.62>}]
+
+
+——— MATCH STARTS BETWEEN U AND U2 ———— 
+
+
+"13:52:10.134864" (MatchManager:) Received start_match message from Tournament Manager 
+"13:52:10.134936" (MatchManager:) Starting with "u" vs "u2", 3 games
+"13:52:10.135003" (MatchManager:) Starting Game 0 between "u" and "u2", 3 games left
+"13:52:10.136819" >> Dice rolled for turn 0: [[2,4,2,2,3],
+                                              [6,3,4,6,5],
+                                              [6,3,5,2,5]]
+"13:52:10.136929" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [2,4,2,2,3]
+"13:52:10.172307" (MatchManager:) Player "u" keeping dice [2,3,4,2,3]
+"13:52:10.172394" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [2,3,4,2,3]
+"13:52:10.202314" (MatchManager:) Player "u" keeping dice [6,3,5,2,3]
+"13:52:10.202401" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [6,3,5,2,3]
+"13:52:10.204972" (MatchManager:) Player "u" ending turn with Scorecard line #13: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+                                        19,0]
+"13:52:10.205131" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [2,4,2,2,3]
+"13:52:10.241184" (MatchManager:) Player "u2" keeping dice [6,3,4,2,5]
+"13:52:10.241316" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [6,3,4,2,5]
+"13:52:10.241605" (MatchManager:) Player "u2" ending turn with Scorecard line #11: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,40,-1,
+                                        -1,0]
+
+——— U2 WINS FIRST GAME ——— 
+
+
+Upper: [0,4,3,12,10,12] [41], Lower:[16,0,0,30,0,0,19] [65]
+Upper: [0,4,3,4,10,12] [33], Lower:[18,0,0,30,40,0,19] [107]
+"13:52:11.675911" (MatchManager:) *!* Game 0: "u" got 106, "u2" got 140
+
+
+
+—— SECOND GAME STARTS ———
+
+
+"13:52:11.675996" (MatchManager:) Starting Game 1 between "u" and "u2", 2 games left
+"13:52:11.676080" >> Dice rolled for turn 0: [[2,3,2,5,3],
+                                              [3,6,3,4,4],
+                                              [3,5,3,4,2]]
+"13:52:11.676233" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [2,3,2,5,3]
+"13:52:11.706099" (MatchManager:) Player "u" keeping dice [3,6,3,5,4]
+"13:52:11.706175" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [3,6,3,5,4]
+"13:52:11.706817" (MatchManager:) Player "u" ending turn with Scorecard line #10: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,-1,30,-1,-1,
+                                        -1,0]
+"13:52:11.706940" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [2,3,2,5,3]
+"13:52:11.737303" (MatchManager:) Player "u2" keeping dice [3,6,2,5,4]
+"13:52:11.737384" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [3,6,2,5,4]
+"13:52:11.738044" (MatchManager:) Player "u2" ending turn with Scorecard line #11: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,40,-1,
+                                        -1,0]
+
+
+———— U2 DIES, IS CAUGHT BY TOURNAMENT MANAGER ——— 
+
+
+"13:52:12.45251" Process <5389.2.0> died because noconnection! Logging out #Ref<0.0.0.63>...
+"13:52:12.45386" Logging out player"u2"
+"13:52:12.45434" All Players: [{"u","p",0,0,0,
+                                [127699631550],
+                                <5388.2.0>,#Ref<0.0.0.44>},
+                               {"u2","p2",0,0,0,[127699631550],none,none}]
+"13:52:12.45574" Listening with Tournaments:
+ [{127699631550,none,3,
+   [{1,
+     {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+     {"u2","p2",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}}]}]
+ And Players:
+[{"u","p",0,0,0,[127699631550],<5388.2.0>,#Ref<0.0.0.44>},
+ {"u2","p2",0,0,0,[127699631550],none,none}]
+
+
+———— THEN U DIES AS WELL ——— 
+
+
+"13:52:13.720555" Process <5388.2.0> died because noconnection! Logging out #Ref<0.0.0.45>...
+"13:52:13.720721" Logging out player"u"
+"13:52:13.720781" All Players: [{"u2","p2",0,0,0,[127699631550],none,none},
+                                {"u","p",0,0,0,[127699631550],none,none}]
+"13:52:13.720932" Listening with Tournaments:
+ [{127699631550,none,3,
+   [{1,
+     {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+     {"u2","p2",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}}]}]
+ And Players:
+[{"u2","p2",0,0,0,[127699631550],none,none},
+ {"u","p",0,0,0,[127699631550],none,none}]
+(MatchManager:) Timed out waiting for play_action reply from "u2"!
+Upper: [-1,-1,-1,8,-1,-1] [3], Lower:[-1,-1,-1,30,-1,-1,19] [44]
+Upper: [-1,-1,-1,-1,-1,-1] [-6], Lower:[-1,-1,-1,-1,-1,-1,-1] [-7]
+"13:52:14.922448" (MatchManager:) *!* Game 1: "u" got 47, "u2" got -13
+
+
+——— ENDS SECOND GAME BECAUSE PLAYER LOGS OUT, STARTS THIRD IN CASE EITHER LOGS BACK IN ———— 
+
+"13:52:14.922595" (MatchManager:) Starting Game 2 between "u" and "u2", 1 games left
+"13:52:14.922734" >> Dice rolled for turn 0: [[2,2,3,3,4],
+                                              [2,5,4,3,5],
+                                              [2,4,5,2,6]]
+"13:52:14.922913" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [2,2,3,3,4]
+(MatchManager:) Timed out waiting for play_action reply from "u"!
+"13:52:17.924261" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [2,2,3,3,4]
+(MatchManager:) Timed out waiting for play_action reply from "u2"!
+Upper: [-1,-1,-1,-1,-1,-1] [-6], Lower:[-1,-1,-1,-1,-1,-1,-1] [-7]
+Upper: [-1,-1,-1,-1,-1,-1] [-6], Lower:[-1,-1,-1,-1,-1,-1,-1] [-7]
+"13:52:20.926637" (MatchManager:) *!* Game 2: "u" got -13, "u2" got -13
+
+
+——— BOTH PLAYERS UNRESPONSIVE, SO MATCH ENDS AND BYE ADVANCES ———
+
+
+"13:52:20.926777" (MatchManager:) *!*!* Final Score--> Player "u":-1, Player "u2":-1
+"13:52:20.926901" (MatchManager:) Bye wins!
+"13:52:20.926976" (MatchManager:) Bye wins tournament!
+"13:52:20.926994" Got result of match #1 from tournament 127699631550, bye won
+"13:52:20.927219" Listening with Tournaments:
+ [{127699631550,bye,3,
+   [{1,
+     {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+     {"u2","p2",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}}]}]
+ And Players:
+[{"u2","p2",0,0,0,[127699631550],none,none},
+ {"u","p",0,0,0,[127699631550],none,none}]
+"13:52:20.927546" Player bye wins tournament 127699631550!!
+"13:52:20.927651" Listening with Tournaments:
+ [{127699631550,bye,3,
+   [{1,
+     {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+     {"u2","p2",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}}]}]
+ And Players:
+[{"u2","p2",0,0,0,[127699631550],none,none},
+ {"u","p",0,0,0,[127699631550],none,none}]
+

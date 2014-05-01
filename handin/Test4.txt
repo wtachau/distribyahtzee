@@ -1,0 +1,257 @@
+102 % erl -noshell -run yahtzee main tm1 -run init stop -noshell
+"13:24:41.699454" Registered as node tm1@pine, name "tm1", nodes []
+"13:24:41.719771" Listening with Tournaments:
+ []
+ And Players:
+[]
+"13:24:46.591998" Received login from "u" at <5388.2.0>
+"13:24:46.592172" All Players: [{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}]
+"13:24:46.592271" Listening with Tournaments:
+ []
+ And Players:
+[{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}]
+"13:24:49.514147" Received login from "u2" at <5389.2.0>
+"13:24:49.514261" All Players: [{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+                                {"u2","p",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}]
+"13:24:49.514393" Listening with Tournaments:
+ []
+ And Players:
+[{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+ {"u2","p",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}]
+
+
+——— STARTING TOURNAMENT WITH TWO PLAYERS, 3 GAMES PER MATCH ——— 
+
+
+"13:24:56.869273" Received start_tournament message {2,3} from <5390.38.0>, currently 2 players
+"13:24:56.869483" Tournament Manager: Starting tournament #848524005872 requested by <5390.38.0>
+"13:24:56.870159" Received accept_tournament confirmation from "u" 
+"13:24:56.870629" Received accept_tournament confirmation from "u2" 
+"13:24:56.870713" Confirmed players: [{"u","p",0,0,0,[],<5388.2.0>,
+                                       #Ref<0.0.0.44>},
+                                      {"u2","p",0,0,0,[],<5389.2.0>,
+                                       #Ref<0.0.0.62>}]
+[{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+ {"u2","p",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}]
+"13:24:56.871013" Bracket: [{1,
+                             {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+                             {"u2","p",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}}]
+"13:24:56.871182" Listening with Tournaments:
+ [{848524005872,none,3,
+   [{1,
+     {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+     {"u2","p",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}}]}]
+ And Players:
+[{"u","p",0,0,0,[848524005872],<5388.2.0>,#Ref<0.0.0.44>},
+ {"u2","p",0,0,0,[848524005872],<5389.2.0>,#Ref<0.0.0.62>}]
+"13:24:56.873952" (MatchManager:) Received start_match message from Tournament Manager 
+"13:24:56.874031" (MatchManager:) Starting with "u" vs "u2", 3 games
+"13:24:56.874120" (MatchManager:) Starting Game 0 between "u" and "u2", 3 games left
+"13:24:56.876349" >> Dice rolled for turn 0: [[6,2,3,5,2],
+                                              [5,4,4,2,3],
+                                              [5,3,5,2,5]]
+"13:24:56.876485" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [6,2,3,5,2]
+"13:24:56.900412" (MatchManager:) Player "u" keeping dice [5,4,4,2,3]
+"13:24:56.900531" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [5,4,4,2,3]
+"13:24:56.902595" (MatchManager:) Player "u" ending turn with Scorecard line #10: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,-1,30,-1,-1,
+                                        -1,0]
+"13:24:56.902750" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [6,2,3,5,2]
+"13:24:56.906228" (MatchManager:) Player "u2" keeping dice [5,4,4,2,3]
+"13:24:56.906356" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [5,4,4,2,3]
+"13:24:56.906720" (MatchManager:) Player "u2" ending turn with Scorecard line #10: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,-1,30,-1,-1,
+                                        -1,0]
+"13:24:56.906893" >> Dice rolled for turn 1: [[6,4,3,6,5],
+                                              [6,2,4,4,3],
+                                              [2,6,4,4,5]]
+"13:24:56.907021" (MatchManager:) Sending play_request to "u" on turn #1,
+						with dice [6,4,3,6,5]
+"13:24:56.907403" (MatchManager:) Player "u" keeping dice [6,2,4,4,3]
+"13:24:56.907492" (MatchManager:) Sending play_request to "u" on turn #1,
+						with dice [6,2,4,4,3]
+"13:24:56.907903" (MatchManager:) Player "u" keeping dice [2,6,4,4,5]
+"13:24:56.907994" (MatchManager:) Sending play_request to "u" on turn #1,
+						with dice [2,6,4,4,5]
+"13:24:56.908419" (MatchManager:) Player "u" ending turn with Scorecard line #13: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,-1,30,-1,-1,
+                                        21,0]
+"13:24:56.908572" (MatchManager:) Sending play_request to "u2" on turn #1,
+						with dice [6,4,3,6,5]
+"13:24:56.908930" (MatchManager:) Player "u2" keeping dice [6,2,4,4,3]
+"13:24:56.909021" (MatchManager:) Sending play_request to "u2" on turn #1,
+						with dice [6,2,4,4,3]
+"13:24:56.909389" (MatchManager:) Player "u2" keeping dice [2,6,4,4,5]
+"13:24:56.909480" (MatchManager:) Sending play_request to "u2" on turn #1,
+						with dice [2,6,4,4,5]
+"13:24:56.909855" (MatchManager:) Player "u2" ending turn with Scorecard line #13: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,-1,30,-1,-1,
+                                        21,0]
+
+
+——— NOTE THAT BOTH PLAYERS MAKE SAME MOVES ——— 
+
+
+"13:24:56.961599" >> Dice rolled for turn 12: [[5,6,4,4,3],
+                                               [5,5,4,3,2],
+                                               [5,4,5,5,3]]
+"13:24:56.961699" (MatchManager:) Sending play_request to "u" on turn #12,
+						with dice [5,6,4,4,3]
+"13:24:56.961991" (MatchManager:) Player "u" keeping dice [5,5,4,3,2]
+"13:24:56.962061" (MatchManager:) Sending play_request to "u" on turn #12,
+						with dice [5,5,4,3,2]
+"13:24:56.962352" (MatchManager:) Player "u" keeping dice [5,4,5,5,3]
+"13:24:56.962420" (MatchManager:) Sending play_request to "u" on turn #12,
+						with dice [5,4,5,5,3]
+"13:24:56.962716" (MatchManager:) Player "u" ending turn with Scorecard line #1: 
+			>> Scorecard = [0,4,3,4,10,6,20,0,25,30,40,0,20,0]
+"13:24:56.962816" (MatchManager:) Sending play_request to "u2" on turn #12,
+						with dice [5,6,4,4,3]
+"13:24:56.963103" (MatchManager:) Player "u2" keeping dice [5,5,4,3,2]
+"13:24:56.963174" (MatchManager:) Sending play_request to "u2" on turn #12,
+						with dice [5,5,4,3,2]
+"13:24:56.963456" (MatchManager:) Player "u2" keeping dice [5,4,5,5,3]
+"13:24:56.963525" (MatchManager:) Sending play_request to "u2" on turn #12,
+						with dice [5,4,5,5,3]
+"13:24:56.963818" (MatchManager:) Player "u2" ending turn with Scorecard line #1: 
+			>> Scorecard = [0,4,3,4,10,6,20,0,25,30,40,0,20,0]
+Upper: [0,4,3,4,10,6] [27], Lower:[20,0,25,30,40,0,20] [135]
+Upper: [0,4,3,4,10,6] [27], Lower:[20,0,25,30,40,0,20] [135]
+"13:24:56.964037" (MatchManager:) *!* Game 0: "u" got 162, "u2" got 162
+
+
+———— PLAYERS TIED, SO RE-DOING GAME WITHOUT TOURNAMENT MODE ——— 
+
+
+"13:24:56.964119" (MatchManager:) Starting Game 0 between "u" and "u2", 3 games left
+"13:24:56.964210" >> Dice rolled for turn 0: [[3,6,3,5,6],
+                                              [3,4,3,5,5],
+                                              [3,4,4,6,6]]
+"13:24:56.964313" >> STANDARD MODE: Also dice[[3,3,4,2,3],
+                                              [3,2,4,4,4],
+                                              [3,6,5,5,4]]
+"13:24:56.964425" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [3,6,3,5,6]
+"13:24:56.964759" (MatchManager:) Player "u" keeping dice [3,4,3,5,5]
+"13:24:56.964851" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [3,4,3,5,5]
+"13:24:56.965143" (MatchManager:) Player "u" keeping dice [3,4,4,6,6]
+"13:24:56.965214" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [3,4,4,6,6]
+"13:24:56.965622" (MatchManager:) Player "u" ending turn with Scorecard line #13: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+                                        23,0]
+"13:24:56.965749" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [3,6,3,5,6]
+"13:24:56.966035" (MatchManager:) Player "u2" keeping dice [3,2,4,4,4]
+"13:24:56.966106" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [3,2,4,4,4]
+"13:24:56.966399" (MatchManager:) Player "u2" keeping dice [3,6,5,5,4]
+"13:24:56.966466" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [3,6,5,5,4]
+"13:24:56.966760" (MatchManager:) Player "u2" ending turn with Scorecard line #10: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,-1,30,-1,-1,
+                                        -1,0]
+
+…
+
+"13:24:57.25846" >> Dice rolled for turn 12: [[3,2,6,2,5],
+                                              [3,6,2,2,4],
+                                              [3,5,2,4,5]]
+"13:24:57.25953" >> STANDARD MODE: Also dice[[3,4,3,4,2],
+                                             [4,2,4,4,4],
+                                             [4,2,4,6,5]]
+"13:24:57.26062" (MatchManager:) Sending play_request to "u" on turn #12,
+						with dice [3,2,6,2,5]
+"13:24:57.26353" (MatchManager:) Player "u" keeping dice [3,6,2,2,4]
+"13:24:57.26424" (MatchManager:) Sending play_request to "u" on turn #12,
+						with dice [3,6,2,2,4]
+"13:24:57.26725" (MatchManager:) Player "u" keeping dice [3,5,2,4,5]
+"13:24:57.26794" (MatchManager:) Sending play_request to "u" on turn #12,
+						with dice [3,5,2,4,5]
+"13:24:57.27096" (MatchManager:) Player "u" ending turn with Scorecard line #1: 
+			>> Scorecard = [0,4,6,8,10,6,27,22,25,30,40,0,16,0]
+"13:24:57.27197" (MatchManager:) Sending play_request to "u2" on turn #12,
+						with dice [3,2,6,2,5]
+"13:24:57.27490" (MatchManager:) Player "u2" keeping dice [4,2,4,4,4]
+"13:24:57.27561" (MatchManager:) Sending play_request to "u2" on turn #12,
+						with dice [4,2,4,4,4]
+"13:24:57.27844" (MatchManager:) Player "u2" keeping dice [4,2,4,6,5]
+"13:24:57.27913" (MatchManager:) Sending play_request to "u2" on turn #12,
+						with dice [4,2,4,6,5]
+"13:24:57.28202" (MatchManager:) Player "u2" ending turn with Scorecard line #1: 
+			>> Scorecard = [0,2,3,8,10,6,14,0,0,30,40,0,21,0]
+Upper: [0,4,6,8,10,6] [34], Lower:[27,22,25,30,40,0,16] [160]
+Upper: [0,2,3,8,10,6] [29], Lower:[14,0,0,30,40,0,21] [105]
+"13:24:57.28422" (MatchManager:) *!* Game 1: "u" got 194, "u2" got 134
+
+
+——— PLAYERS NO LONGER TIE ———— 
+
+
+"13:24:57.28504" (MatchManager:) Starting Game 2 between "u" and "u2", 1 games left
+"13:24:57.28595" >> Dice rolled for turn 0: [[5,6,3,3,3],
+                                             [5,5,3,3,3],
+                                             [6,4,3,4,3]]
+"13:24:57.28698" >> STANDARD MODE: Also dice[[6,3,4,6,4],
+                                             [6,2,4,3,4],
+                                             [6,2,5,3,2]]
+"13:24:57.28803" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [5,6,3,3,3]
+"13:24:57.29094" (MatchManager:) Player "u" keeping dice [5,5,3,3,3]
+"13:24:57.29162" (MatchManager:) Sending play_request to "u" on turn #0,
+						with dice [5,5,3,3,3]
+"13:24:57.29446" (MatchManager:) Player "u" ending turn with Scorecard line #9: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,25,-1,-1,-1,
+                                        -1,0]
+"13:24:57.29568" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [5,6,3,3,3]
+"13:24:57.29848" (MatchManager:) Player "u2" keeping dice [6,2,4,3,4]
+"13:24:57.29914" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [6,2,4,3,4]
+"13:24:57.30314" (MatchManager:) Player "u2" keeping dice [6,2,5,3,2]
+"13:24:57.30386" (MatchManager:) Sending play_request to "u2" on turn #0,
+						with dice [6,2,5,3,2]
+"13:24:57.30678" (MatchManager:) Player "u2" ending turn with Scorecard line #13: 
+			>> Scorecard = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+                                        18,0]
+Upper: [0,6,6,12,15,6] [45], Lower:[16,0,25,30,40,0,18] [129]
+Upper: [0,4,6,12,15,6] [43], Lower:[20,17,25,30,40,0,18] [150]
+"13:24:57.59663" (MatchManager:) *!* Game 2: "u" got 174, "u2" got 193
+
+
+
+"13:24:57.59754" (MatchManager:) *!*!* Final Score--> Player "u":1, Player "u2":2
+"13:24:57.59838" (MatchManager:) Player "u2" wins!
+"13:24:57.59894" (MatchManager:) Player "u2" wins tournament!
+"13:24:57.59905" Got result of match #1 from tournament 848524005872, {"u2",
+                                                                       "p",0,
+                                                                       0,0,[],
+                                                                       <5389.2.0>,
+                                                                       #Ref<0.0.0.62>} won
+"13:24:57.60168" Listening with Tournaments:
+ [{848524005872,
+   {"u2","p",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>},
+   3,
+   [{1,
+     {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+     {"u2","p",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}}]}]
+ And Players:
+[{"u","p",0,0,1,[848524005872],<5388.2.0>,#Ref<0.0.0.44>},
+ {"u2","p",0,1,0,[848524005872],<5389.2.0>,#Ref<0.0.0.62>}]
+"13:24:57.60409" Player {"u2","p",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>} wins tournament 848524005872!!
+"13:24:57.60489" Listening with Tournaments:
+ [{848524005872,
+   {"u2","p",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>},
+   3,
+   [{1,
+     {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+     {"u2","p",0,0,0,[],<5389.2.0>,#Ref<0.0.0.62>}}]}]
+ And Players:
+[{"u","p",0,0,1,[848524005872],<5388.2.0>,#Ref<0.0.0.44>},
+ {"u2","p",1,1,0,[848524005872],<5389.2.0>,#Ref<0.0.0.62>}]
+

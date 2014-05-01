@@ -1,0 +1,101 @@
+"13:2:28.591354" Listening with Tournaments:
+ []
+ And Players:
+[]
+"13:2:33.461788" Received login from "u" at <5388.2.0>
+"13:2:33.461898" All Players: [{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}]
+"13:2:33.461997" Listening with Tournaments:
+ []
+ And Players:
+[{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}]
+
+
+—— ONLY ONE PLAYER LOGGED IN —— 
+
+
+"13:2:44.589234" Received start_tournament message {4,1} from <5389.38.0>, currently 1 players
+"13:2:44.589372" Tournament Manager: Starting tournament #574379759244 requested by <5389.38.0>
+"13:2:44.589888" Received accept_tournament confirmation from "u" 
+"13:2:44.589982" Confirmed players: [{"u","p",0,0,0,[],<5388.2.0>,
+                                      #Ref<0.0.0.44>}]
+[bye,{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},bye,bye]
+
+
+
+—— BRACKET IS SCHEDULED WITH MOSTLY BYES ——
+
+
+"13:2:44.590196" Bracket: [{1,none,none},
+                           {2,bye,
+                            {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}},
+                           {3,bye,bye}]
+"13:2:44.590407" Listening with Tournaments:
+ [{574379759244,none,1,
+   [{1,none,none},
+    {2,bye,{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}},
+    {3,bye,bye}]}]
+ And Players:
+[{"u","p",0,0,0,[574379759244],<5388.2.0>,#Ref<0.0.0.44>}]
+"13:2:44.605330" (MatchManager:) Received start_match message from Tournament Manager 
+"13:2:44.605351" (MatchManager:) Received start_match message from Tournament Manager 
+"13:2:44.605515" (MatchManager:) Player "u" wins against bye!
+
+
+——— BYE BEATS BYE AND ADVANCES ——
+
+
+
+"13:2:44.605536" (MatchManager:) Bye wins against bye!
+"13:2:44.605675" Got result of match #2 from tournament 574379759244, {"u",
+                                                                       "p",0,
+                                                                       0,0,[],
+                                                                       <5388.2.0>,
+                                                                       #Ref<0.0.0.44>} won
+"13:2:44.605952" Listening with Tournaments:
+ [{574379759244,none,1,
+   [{1,{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},none},
+    {2,bye,{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}},
+    {3,bye,bye}]}]
+ And Players:
+[{"u","p",0,1,0,[574379759244],<5388.2.0>,#Ref<0.0.0.44>}]
+"13:2:44.606235" Got result of match #3 from tournament 574379759244, bye won
+"13:2:44.606339" Listening with Tournaments:
+ [{574379759244,none,1,
+   [{1,{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},bye},
+    {2,bye,{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}},
+    {3,bye,bye}]}]
+ And Players:
+[{"u","p",0,1,0,[574379759244],<5388.2.0>,#Ref<0.0.0.44>}]
+"13:2:44.606355" (MatchManager:) Received start_match message from Tournament Manager 
+
+
+———  U IMMEDIATELY BEATS BYE TO WIN TOURNAMENT ——— 
+
+
+"13:2:44.606642" (MatchManager:) Player "u" wins against bye!
+"13:2:44.606716" (MatchManager:) Player "u" wins tournament!
+"13:2:44.606733" Got result of match #1 from tournament 574379759244, {"u",
+                                                                       "p",0,
+                                                                       0,0,[],
+                                                                       <5388.2.0>,
+                                                                       #Ref<0.0.0.44>} won
+"13:2:44.607018" Listening with Tournaments:
+ [{574379759244,
+   {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+   1,
+   [{1,{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},bye},
+    {2,bye,{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}},
+    {3,bye,bye}]}]
+ And Players:
+[{"u","p",0,2,0,[574379759244],<5388.2.0>,#Ref<0.0.0.44>}]
+"13:2:44.607271" Player {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>} wins tournament 574379759244!!
+"13:2:44.607365" Listening with Tournaments:
+ [{574379759244,
+   {"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},
+   1,
+   [{1,{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>},bye},
+    {2,bye,{"u","p",0,0,0,[],<5388.2.0>,#Ref<0.0.0.44>}},
+    {3,bye,bye}]}]
+ And Players:
+[{"u","p",1,2,0,[574379759244],<5388.2.0>,#Ref<0.0.0.44>}]
+
