@@ -88,8 +88,6 @@ listen(Connections)->
 		{start_tournament, PID, TID} ->
 			io:format("~p Received start_tournament request from ~p with TID ~p~n",[timestamp(), PID, TID]),
 
-			%% FIXME: something about accepting tournament (data structures? does it matter?)
-
 			PID ! {accept_tournament, self(), TID},
 			listen(Connections);
 
@@ -198,7 +196,6 @@ should_return_now(Scorecard, Dice) ->
 
 % Decide which dice to keep (return list of booleans)
 keep_dice(Dice, Scorecard, RollNumber) ->
-	% FIXME - strategy!
 	Keep1 = get_random_die(6),
 	Keep2 = get_random_die(2),
 	Keep3 = get_random_die(12),
@@ -211,7 +208,7 @@ get_random_die(Seed) ->
 	Rand = random:uniform(),
 	timer:sleep(5), %for random seed
 	if
-		round(Rand) == 1 ->
+		round(Rand) == 1 -> % make 2 to simulate same strategy
 			true;
 		true ->
 			false

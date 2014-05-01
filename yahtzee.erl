@@ -77,8 +77,10 @@ listen(Players, Tournaments)->
 
 		{request_tournament, PID, {NumberPlayers, GamesPerMatch}} ->
 			io:format("~p Received start_tournament message {~p,~p} from ~p, currently ~p players~n", [timestamp(), NumberPlayers, GamesPerMatch, PID, length(Players)]),
-			{TID, Winner, GamesPer, NewBracket} = start_tournament(Players, {PID, NumberPlayers, GamesPerMatch}),
-			listen(Players, Tournaments ++ [{TID, Winner, GamesPer, NewBracket}]);			
+			{TID, Winner, GamesPer, NewBracket, ConfirmedPlayers} = start_tournament(Players, {PID, NumberPlayers, GamesPerMatch}),
+			OldPlayers = Players -- ConfirmedPlayers,
+			UpdatedPlayers = update_players_tournament(ConfirmedPlayers, TID),
+			listen(OldPlayers++UpdatedPlayers, Tournaments ++ [{TID, Winner, GamesPer, NewBracket}]);			
 
 		{'DOWN', MonitorReference, process, PID, Reason} ->
 			io:format("~p Process ~p died because ~p! Logging out ~p...~n", [timestamp(), PID, Reason, MonitorReference]),
@@ -89,23 +91,29 @@ listen(Players, Tournaments)->
 
 			listen(NewPlayers, Tournaments);
 
-		{match_result, _, {Winner, TID, MID}} ->
+		{match_result, _, {Winner, Loser, TID, MID}} ->
 			io:format("~p Got result of match #~p from tournament ~p, ~p won~n", [timestamp(), MID, TID, Winner]),
 			% Update players to reflect win count, and update tournaments
 			UpdatedTournaments = update_tournaments(Tournaments, MID, TID, Winner),
-			UpdatedPlayers = update_players(Players, Winner, match),
+			UpdatedPlayers = update_players(Players, Winner, Loser, match),
 			listen(UpdatedPlayers, UpdatedTournaments);
 
 		{tournament_result, _, {Winner, TID}} ->
 			io:format("~p Player ~p wins tournament ~p!!~n", [timestamp(), Winner, TID]),
 			% tournament will already have been updated by match_result
-			UpdatedPlayers = update_players(Players, Winner, tournament),
+			UpdatedPlayers = update_players(Players, Winner, bye, tournament),
 			listen(UpdatedPlayers, Tournaments);
 
 		{tournament_info, PID, TID} ->
 			{Status, Winner, Optional} = get_status(Tournaments, TID),
 			io:format("~p Tournament Info requested, returning ~n{~p, ~p, ~p}~n", [timestamp(), Status, Winner, Optional]),
 			PID ! {tournament_status, PID, {TID, Status, Winner, Optional}},
+			listen(Players, Tournaments);
+
+		{user_info, PID, Username} ->
+			{U, Mw, Ml, Ts, Tw} = get_user_status(Players, Username),
+			io:format("~p User Info requested, returning ~n{~p, ~p, ~p, ~p, ~p}~n", [timestamp(), U, Mw, Ml, Ts, Tw]),
+			PID ! {user_status, PID, {U, Mw, Ml, Ts, Tw}},
 			listen(Players, Tournaments);
 
 		{_, PID, _} ->
@@ -119,9 +127,9 @@ listen(Players, Tournaments)->
 
 % Add a player to the list, if not already there
 loginPlayer([], Username, Password, PID, LoginTicket) ->
-	{[{Username, Password, 0, 0, PID, LoginTicket}], yes};
+	{[{Username, Password, 0, 0, 0, [], PID, LoginTicket}], yes};
 loginPlayer(Players, Username, Password, PID, LoginTicket) ->
-	{U, P, Tw, Mw, _, _} = hd(Players),
+	{U, P, Tw, Mw, Ml, Ts, _, _} = hd(Players),
 	if
 		U == Username ->
 			% check password
@@ -129,7 +137,7 @@ loginPlayer(Players, Username, Password, PID, LoginTicket) ->
 				P == Password ->
 					io:format("~p Logging back in player ~p~n", [timestamp(), U]),
 					AltPlayers = Players -- [hd(Players)],
-					{AltPlayers ++ [{U, P, Tw, Mw, PID, LoginTicket}], yes};
+					{AltPlayers ++ [{U, P, Tw, Mw, Ml, Ts, PID, LoginTicket}], yes};
 				true -> %pw doesn't match
 					{Players, no}
 			end;
@@ -142,12 +150,12 @@ loginPlayer(Players, Username, Password, PID, LoginTicket) ->
 logoutPlayer([], PID) ->
 	io:format("~p ERROR: Logout Player with PID ~p not found!~n", [timestamp(), PID]);
 logoutPlayer(Players, PID) ->
-	{U, Pw, Tw, Mw, Pd, _} = hd(Players),
+	{U, Pw, Tw, Mw, Ml, Ts, Pd, _} = hd(Players),
 	if
 		PID == Pd ->
 			io:format("~p Logging out player~p~n",[timestamp(), U]),
 			AltPlayers = Players -- [hd(Players)],
-			AltPlayers ++ [{U, Pw, Tw, Mw, none, none}];
+			AltPlayers ++ [{U, Pw, Tw, Mw, Ml, Ts, none, none}];
 		true ->
 			[hd(Players)] ++ logoutPlayer(tl(Players), PID)
 	end.
@@ -166,16 +174,15 @@ start_tournament(Players, {PID, NumberPlayers, GamesPerMatch}) ->
 
 	% Figure out how many players in tournament (NumberPlayers may not be of form 2^k)
 	Total = get_num_players(NumberPlayers, 1),
-	%Levels = log2(Total),
 
 	% Generate list of players, with appropriate # of byes
-	PlayersWithByes = get_player_list(Players, Total, TID),
+	{ConfirmedPlayers, PlayersWithByes} = get_player_list(Players, Total, TID),
 	io:format("~p~n",[PlayersWithByes]),
 
 	Bracket = make_bracket(PlayersWithByes, TID, GamesPerMatch),
 
 	io:format("~p Bracket: ~p~n", [timestamp(), Bracket]),
-	{TID, none, GamesPerMatch, Bracket}.
+	{TID, none, GamesPerMatch, Bracket, ConfirmedPlayers}.
 
 %log2(X) ->
 %  math:log(X) / math:log(2).
@@ -224,7 +231,7 @@ get_num_players(Num, SoFar)->
  get_player_list(Players, Total, TID) ->
  	ConfirmedPlayers = get_confirmed_players(Players, Total, TID),
  	io:format("~p Confirmed players: ~p~n", [timestamp(), ConfirmedPlayers]),
- 	get_full_list(ConfirmedPlayers, Total).
+ 	{ConfirmedPlayers, get_full_list(ConfirmedPlayers, Total)}.
 
  
 % iterate through Players, call for confirmation
@@ -234,7 +241,7 @@ get_confirmed_players(_, 0, _) ->
 	[];
 get_confirmed_players(Players, Total, TID) ->
 	% send conf messages
-	{Username1, _, _, _, PID, _} = hd(Players),
+	{Username1, _, _, _, _, _, PID, _} = hd(Players),
 	if
 		PID == none -> %% user is logged out!
 			get_confirmed_players(tl(Players), Total, TID);
@@ -274,7 +281,6 @@ get_full_list(Players, TotalNum) ->
 %% ====================================================================
 
 start_match(TwoPlayers, GamesPerMatch, TID, MID) ->
-	% Spawn a match process %fixme = in bracket call
 	MM = spawn(yahtzee_mm, main, []),
 	MM ! {start_match, self(), {TwoPlayers, GamesPerMatch, TID, MID}}.
 
@@ -314,33 +320,79 @@ update_round({Num, Player1, none}, Player2, GamesPerMatch, TID) ->
 	{Num, Player1, Player2}.
 
 %% ====================================================================
-%%   Update players for a Tournament Win (TW) or Match Win (MW)
+%%   Update players for a Tournament Win, Match Win, or Match Loss
 %% ====================================================================
 
-update_players(Players, bye, _) ->
-	Players;
-update_players([], _, _) ->
+% no players left to update
+update_players([], _, _, _) ->
 	[];
-update_players([bye|Players], Winner, Kind) ->
-	[bye] ++ update_players(Players, Winner, Kind);
-update_players(Players, Winner, Kind) ->
-	{Username, Pw, Tw, Mw, Pd, Lt} = hd(Players),
-	{U, _, _, _, _, _} = Winner,
+% can't update a bye
+update_players([bye|Players], Winner, Loser, Kind) ->
+	[bye] ++ update_players(Players, Winner, Loser, Kind);
+% winner and loser are bye
+update_players(Players, bye, bye, _) ->
+	Players;
+% winner is a bye
+update_players(Players, bye, Loser, Kind) ->
+	{Username, Pw, Tw, Mw, Mls, Ts, Pd, Lt} = hd(Players),
+	{UL, _, _, _, _, _, _, _} = Loser,
+	Rest = update_players(tl(Players), bye, Loser, Kind),
+	if
+		% only update match losses, not tournament losses
+		UL == Username ->
+			[{Username, Pw, Tw, Mw, (Mls+1), Ts, Pd, Lt}] ++ Rest;
+		true ->
+			[hd(Players)] ++ Rest
+	end;
+%loser is a bye
+update_players(Players, Winner, bye, Kind) ->
+	{Username, Pw, Tw, Mw, Mls, Ts, Pd, Lt} = hd(Players),
+	{U, _, _, _, _, _, _, _} = Winner,
+	Rest = update_players(tl(Players), Winner, bye, Kind),
 	if
 		U == Username ->
 		if
 			Kind == tournament ->
-				[{Username, Pw, (Tw+1), Mw, Pd, Lt}] ++ tl(Players);
+				[{Username, Pw, (Tw+1), Mw, Mls, Ts, Pd, Lt}] ++ Rest;
 			true ->
-				[{Username, Pw, Tw, (Mw+1), Pd, Lt}] ++ tl(Players)
+				[{Username, Pw, Tw, (Mw+1), Mls, Ts, Pd, Lt}] ++ Rest
 		end;
 		true ->
-			[{Username, Pw, Tw, Mw, Pd, Lt}] ++ update_players(tl(Players), Winner, Kind)
+			[hd(Players)] ++ Rest
+	end;
+%neither are bye
+update_players(Players, Winner, Loser, Kind) ->
+	{Username, Pw, Tw, Mw, Mls, Ts, Pd, Lt} = hd(Players),
+	{UW, _, _, _, _, _, _, _} = Winner,
+	{UL, _, _, _, _, _, _, _} = Loser,
+	Rest = update_players(tl(Players), Winner, Loser, Kind),
+	if
+		UW == Username ->
+		if
+			Kind == tournament ->
+				[{Username, Pw, (Tw+1), Mw, Mls, Ts, Pd, Lt}] ++ Rest;
+			true ->
+				[{Username, Pw, Tw, (Mw+1), Mls, Ts, Pd, Lt}] ++ Rest
+		end;
+		% only update match losses, not tournament losses
+		UL == Username ->
+			[{Username, Pw, Tw, Mw, (Mls+1), Ts, Pd, Lt}] ++ Rest;
+		true ->
+			[hd(Players)] ++ Rest
 	end.
+
+% Updates TID in a player
+update_players_tournament([], _) ->
+	[];
+update_players_tournament(ConfirmedPlayers, TID) ->
+	{Username, Pw, Tw, Mw, Ml, Ts, Pd, Lt}  = hd(ConfirmedPlayers),
+	Rest = update_players_tournament(tl(ConfirmedPlayers), TID),
+	[{Username, Pw, Tw, Mw, Ml, Ts++[TID], Pd, Lt}] ++ Rest.
+
 
 
 %% ====================================================================
-%%   Return information about a tournament
+%%   Return information about a tournament or user
 %% ====================================================================
 
 get_status([], _) ->
@@ -359,6 +411,18 @@ get_status(Tournaments, TID) ->
 		true ->
 			get_status(tl(Tournaments), TID)
 	end.
+
+get_user_status([], _) ->
+	{none, none, none, none, none};
+get_user_status(Players, U) ->
+	{Username, _, Tw, Mw, Ml, Ts, _, _} = hd(Players),
+	if
+		U == Username ->
+			{U, Mw, Ml, Ts, Tw};
+		true ->
+			get_user_status(tl(Players), U)
+	end.
+		
 
 
 
