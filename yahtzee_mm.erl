@@ -14,57 +14,82 @@
 main() ->
 	% Listen for tournament manager (so can get return info)
 	receive
-		{start_match, PID, {{Player1, Player2}, NumGames, TID}} ->
-			io:format("~p (MatchManager:) Received start_match confirmation from ~p ~n",[timestamp(), PID]),
-		play_match({Player1, Player2}, NumGames, TID, PID)
+		{start_match, PID, {{Player1, Player2}, NumGames, TID, MID}} ->
+			io:format("~p (MatchManager:) Received start_match message from Tournament Manager ~n",[timestamp()]),
+		play_match({Player1, Player2}, NumGames, TID, PID, MID)
 
 	after ?TIMEOUT -> 
 		io:format("~p (MatchManager:) Timed out waiting for start_match message~n", [timestamp()])
 	end.
 
-play_match({Player1, Player2}, NumGames, TID, TournamentPID) ->
-	{Username1, _, PID1, _} = Player1,
-	{Username2, _, PID2, _} = Player2,
+% Play a match as determined by yahztee tournament manager
+play_match({bye, bye}, _, TID, TournamentPID, MID) ->
+	io:format("~p (MatchManager:) Bye wins against bye!~n", [timestamp()]),
+	TournamentPID ! {match_result, self(), {bye, bye, TID, MID}};
 
-	%FIXME - these should go in tournament manager!
+play_match({bye, Player2}, _, TID, TournamentPID, MID) ->
+	{Username, _, _, _, _, _, _, _} = Player2,
+	io:format("~p (MatchManager:) Player ~p wins against bye!~n", [timestamp(), Username]),
+	TournamentPID ! {match_result, self(), {Player2, bye, TID, MID}},
+	if
+		MID == 1 ->
+			io:format("~p (MatchManager:) Player ~p wins tournament!~n", [timestamp(), Username]),
+			TournamentPID ! {tournament_result, self(), {Player2, TID}};
+		true ->
+			ok
+	end;
 
-	io:format("~p (MatchManager:) Sending start_tournament messages to ~p and ~p~n", [timestamp(), Username1, Username2]),
+play_match({Player1, bye}, _, TID, TournamentPID, MID) ->
+	{Username, _, _, _, _, _, _, _} = Player1,
+	io:format("~p (MatchManager:) Player ~p wins against bye!~n", [timestamp(), Username]),
+	TournamentPID ! {match_result, self(), {Player1, bye, TID, MID}},
+	if
+		MID == 1 ->
+			io:format("~p (MatchManager:) Player ~p wins tournament!~n", [timestamp(), Username]),
+			TournamentPID ! {tournament_result, self(), {Player1, TID}};
+		true ->
+			ok
+	end;
 
-	% send conf messages
-	PID1 ! {start_tournament, self(), TID},
-	% Receive confirmation
-	receive
-		{accept_tournament, P1, _} ->
-			io:format("~p (MatchManager:) Received accept_tournament confirmation from ~p ~n",[timestamp(), P1])
-	after ?TIMEOUT -> 
-		io:format("~p (MatchManager:) Timed out waiting for accept_tournament reply from ~p!~n", [timestamp(), PID1])
-	end,
-
-	% send conf messages
-	PID2 ! {start_tournament, self(), TID},
-	% Receive confirmation
-	receive
-		{accept_tournament, P2, _} ->
-			io:format("~p (MatchManager:) Received accept_tournament confirmation from ~p ~n",[timestamp(), P2])
-	after ?TIMEOUT -> 
-		io:format("~p (MatchManager:) Timed out waiting for accept_tournament reply from ~p!~n", [timestamp(), PID2])
-	end,
+play_match({Player1, Player2}, NumGames, TID, TournamentPID, MID) ->
+	{Username1, _, _, _, _, _, _, _} = Player1,
+	{Username2, _, _, _, _, _, _, _} = Player2,
 
 	io:format("~p (MatchManager:) Starting with ~p vs ~p, ~p games~n", [timestamp(), Username1, Username2, NumGames]),
 
 	% Now start games!
-	{Score1, Score2} = play_games(Player1, Player2, NumGames, NumGames, TID),
+	{Score1, Score2} = play_games(Player1, Player2, NumGames, NumGames, TID, 0),
 
-	io:format("~p (MatchManager:) *!*!* Final Score--> Player ~p:~p, Player ~p:~p~n", [timestamp(), Username1, Score1, Username2, Score2]),
+	io:format("~n~n~p (MatchManager:) *!*!* Final Score--> Player ~p:~p, Player ~p:~p~n", [timestamp(), Username1, Score1, Username2, Score2]),
 
 	% Determine winner and send back to tournament manager
 	if
 		Score1 > Score2 ->
 			io:format("~p (MatchManager:) Player ~p wins!~n", [timestamp(), Username1]),
-			TournamentPID ! {tournament_result, self(), {Player1, TID}};
-		true ->
+			TournamentPID ! {match_result, self(), {Player1, Player2, TID, MID}};
+		Score1 < Score2 ->
 			io:format("~p (MatchManager:) Player ~p wins!~n", [timestamp(), Username2]),
-			TournamentPID ! {tournament_result, self(), {Player2, TID}}
+			TournamentPID ! {match_result, self(), {Player2, Player1, TID, MID}};
+		true ->
+			io:format("~p (MatchManager:) Bye wins!~n", [timestamp()]),
+			TournamentPID ! {match_result, self(), {bye, bye, TID, MID}}
+	end,
+	% And let it know if player won overall tournament
+	if
+		MID == 1 ->
+			if
+				Score1 > Score2 ->
+					io:format("~p (MatchManager:) Player ~p wins tournament!~n", [timestamp(), Username1]),
+					TournamentPID ! {tournament_result, self(), {Player1, TID}};
+				Score1 < Score2 ->
+					io:format("~p (MatchManager:) Player ~p wins tournament!~n", [timestamp(), Username2]),
+					TournamentPID ! {tournament_result, self(), {Player2, TID}};
+				true ->
+					io:format("~p (MatchManager:) Bye wins tournament!~n", [timestamp()]),
+					TournamentPID ! {tournament_result, self(), {bye, TID}}
+			end;
+		true ->
+			ok
 	end.
 
 %% ====================================================================
@@ -83,74 +108,114 @@ timestamp() ->
 %% ====================================================================	
 
 % Play the number of games specified. Keep track of score, send each game to play_a_game
-play_games(_, _, 0, _, _) ->
+play_games(_, _, 0, _, _, _) ->
 	{0, 0};
-play_games(Player1, Player2, NumGamesLeft, NumGamesTotal, TID) ->
+play_games(Player1, Player2, NumGamesLeft, NumGamesTotal, TID, TiesSoFar) ->
 
-	{Username1, _, _, _} = Player1,
-	{Username2, _, _, _} = Player2,
+	{Username1, _, _, _, _, _, _, _} = Player1,
+	{Username2, _, _, _, _, _, _, _} = Player2,
 	io:format("~p (MatchManager:) Starting Game ~p between ~p and ~p, ~p games left~n", [timestamp(), (NumGamesTotal-NumGamesLeft), Username1, Username2, NumGamesLeft]),
 
 	% Set up scorecards
-	S1 = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-	S2 = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-	GID = make_ref(), %FIXME - what kind of id?
+	S1 = new_scorecard(),
+	S2 = new_scorecard(),
+	GID = NumGamesTotal - NumGamesLeft,
 	
 	% Get final scorecards after a game
-	{Scorecard1, Scorecard2} = play_a_game(Player1, Player2, S1, S2, 0, GID, TID),
+	% If we've tied k/2 times, play in standard yahtzee mode
+	RegularMode = (TiesSoFar < round(NumGamesTotal/2)),
+	{Scorecard1, Scorecard2} = play_a_game(Player1, Player2, S1, S2, 0, GID, TID, RegularMode),
 
 	% total up scorecards
 	Sum1 = scorecard_total(Scorecard1),
 	Sum2 = scorecard_total(Scorecard2),
 
-	io:format("~p (MatchManager:) *!* Game ~p: ~p got ~p, ~p got ~p~n", [timestamp(), (NumGamesTotal-NumGamesLeft), Username1, Sum1, Username2, Sum2]),
+	io:format("~p (MatchManager:) *!* Game ~p: ~p got ~p, ~p got ~p~n~n", [timestamp(), (NumGamesTotal-NumGamesLeft), Username1, Sum1, Username2, Sum2]),
 
-	% And Recurse
-	{Score1, Score2} = play_games(Player1, Player2, NumGamesLeft-1, NumGamesTotal, TID),
-
-	% Return score + 1 for the winner
+	% if both players have crashed. Otherwise, continue
 	if
-		Sum1 > Sum2 ->
-			{Score1 + 1, Score2};
-		Sum2 > Sum1 ->
-			{Score1, Score2 + 1};
-		true -> % FIXME: TIE
-			{Score1, Score2}
+		Sum1 == -13 andalso Sum2 == -13 ->
+			{-1,-1};
+		% If this was a tie game, re-do
+		Sum1 == Sum2 andalso Sum1 > -13 ->
+			% And Recurse
+			{Score1, Score2} = play_games(Player1, Player2, NumGamesLeft, NumGamesTotal, TID, TiesSoFar + 1),
+
+			% To make sure players in recursed games didn't crash
+			if
+				Score1 >= 0 andalso Score2 >= 0 ->
+					{Score1, Score2};
+				true ->
+					{-1, -1}
+			end;
+		true ->
+			% And Recurse
+			{Score1, Score2} = play_games(Player1, Player2, NumGamesLeft-1, NumGamesTotal, TID, TiesSoFar),
+
+			% To make sure players in recursed games didn't crash
+			if
+				Score1 >= 0 andalso Score2 >= 0 ->
+					% Return score + 1 for the winner
+					if
+						Sum1 > Sum2 ->
+							{Score1 + 1, Score2};
+						true ->
+							{Score1, Score2 + 1}
+					end;
+				true ->
+					{-1, -1}
+			end
 	end.
 
 
 % Play one game of yahtzee. Call handle_turn for each turn, call itself recursively for each round
-play_a_game(_, _, Scorecard1, Scorecard2, 13, _, _) ->
+play_a_game(_, _, Scorecard1, Scorecard2, 13, _, _, _) ->
 	{Scorecard1, Scorecard2};
-play_a_game(Player1, Player2, Scorecard1, Scorecard2, TurnNumber, GID, TID) ->
+play_a_game(Player1, Player2, Scorecard1, Scorecard2, TurnNumber, GID, TID, RegularMode) ->
 
-	% FIXME: Generate Dice randomly
+	% If we're in regular tournament mode, AllDice2 will be the same as AllDice
 	AllDice = get_dice_roll(),
+	AllDice2 = get_second_dice(AllDice, RegularMode),
 
-	io:format(">> Dice rolled for turn ~p: ~p~n", [TurnNumber, AllDice]), %fixme: take out
+	io:format("~p >> Dice rolled for turn ~p: ~p~n", [timestamp(), TurnNumber, AllDice]),
+	if
+		RegularMode == false ->
+			io:format("~p >> STANDARD MODE: Also dice~p~n", [timestamp(), AllDice2]);
+		true ->
+			ok
+	end,
 
-	% get turn from player 1, then player 2
-	NewScorecard1 = handle_turn(Player1, TurnNumber, 1, Scorecard1, Scorecard2, GID, TID, AllDice, hd(AllDice)),
-	NewScorecard2 = handle_turn(Player2, TurnNumber, 1, Scorecard2, Scorecard1, GID, TID, AllDice, hd(AllDice)),
+	% get turn from player 1, then player 2. Check if they are cheating/ disconnected
+	{Cheating1, NewScorecard1} = handle_turn(Player1, TurnNumber, 1, Scorecard1, Scorecard2, GID, TID, AllDice, hd(AllDice)),
+	{Cheating2, NewScorecard2} = handle_turn(Player2, TurnNumber, 1, Scorecard2, Scorecard1, GID, TID, AllDice2, hd(AllDice)),
 
-	play_a_game(Player1, Player2, NewScorecard1, NewScorecard2, TurnNumber + 1, GID, TID).
+	% If a player cheated, return scorecards as is... Cheater will automatically lose
+	if
+		Cheating1 == false andalso Cheating2 == false ->
+			play_a_game(Player1, Player2, NewScorecard1, NewScorecard2, TurnNumber + 1, GID, TID, RegularMode);
+		true ->
+			{NewScorecard1, NewScorecard2}
+	end.
+
+	
 
 
 % Handle a turn. 
 handle_turn(_, _, 4, Scorecard, _, _, _, _, _) ->
-	Scorecard;
+	{false, Scorecard};
 handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, AllDice, DiceAvailable) ->
 
-	{Username, _, PID, _} = Player,
+	{Username, _, _, _, _, _, PID, _} = Player,
 	Ref = make_ref(),
 	% send message to player
-	io:format("~p (MatchManager:) Sending play_request to ~p on turn #~p, with dice ~p~n", [timestamp(), Username, TurnNumber, DiceAvailable]),
+	io:format("~p (MatchManager:) Sending play_request to ~p on turn #~p,~n\t\t\t\t\t\twith dice ~p~n", [timestamp(), Username, TurnNumber, DiceAvailable]),
 	PID ! {play_request, self(), {Ref, TID, GID, TurnNumber, RollNumber, DiceAvailable, Scorecard, OppScorecard}},
 	
 	receive
-		{play_action, P1, {RRef, RTID, RGID, RRollNumber, DiceToKeep, ScorecardLine}} ->
+		% {play_action, P1, {RRef, RTID, RGID, RRollNumber, DiceToKeep, ScorecardLine}} ->
+		{play_action, _, {_, _, _, _, DiceToKeep, ScorecardLine}} ->
 
-			io:format("~p (MatchManager:) Received play_action message from ~p: Keeping ~p, scorecard #~p ~n",[timestamp(), Username, DiceToKeep, ScorecardLine]),
+			%io:format("~p (MatchManager:) Received play_action message from ~p:~n\t\t\t>> Keeping ~p, scorecard #~p ~n",[timestamp(), Username, DiceToKeep, ScorecardLine]),
 
 			if
 				ScorecardLine > 0 ->
@@ -163,19 +228,19 @@ handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, A
 							% Update scorecard accordingly
 							NewScorecard = lists:sublist(Scorecard,ScorecardLine-1) ++ [ValueOfMove] ++ lists:nthtail(ScorecardLine,Scorecard),
 
-							io:format("~p (MatchManager:) Player ~p ending turn with Scorecard = ~p~n", [timestamp(), Username, NewScorecard]),
-							NewScorecard;
+							io:format("~p (MatchManager:) Player ~p ending turn with Scorecard line #~p: ~n\t\t\t>> Scorecard = ~p~n", [timestamp(), Username, ScorecardLine, NewScorecard]),
+							{false, NewScorecard};
 
-						true -> %FIXME cheating!
+						true -> 
 							io:format("~p (MatchManager:) ERROR: Not a legal move from ~p~n", [timestamp(), Username]),
-							Scorecard
+							{true, new_scorecard()}
 					end;
 					
 				true ->
 					if
 						RollNumber == 3 ->
-							%FIXME: violation of the protocol, what to do?
-							io:format("~p (MatchManager:) ERROR: Last roll must return scorecard selection ~p~n", [timestamp(), Username]);
+							io:format("~p (MatchManager:) ERROR: Last roll must return scorecard selection ~p~n", [timestamp(), Username]),
+							{true, new_scorecard()};
 						true ->
 							
 							% Generate next dice values available to player
@@ -187,9 +252,12 @@ handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, A
 			end
 
 	after ?TIMEOUT -> 
-		io:format("(MatchManager:) Timed out waiting for play_action reply from ~p!~n", [Username])
+		io:format("(MatchManager:) Timed out waiting for play_action reply from ~p!~n", [Username]),
+		{true, new_scorecard()}
 	end.
 
+new_scorecard() ->
+	[-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0].
 
 
 %% ====================================================================
@@ -198,16 +266,22 @@ handle_turn(Player, TurnNumber, RollNumber, Scorecard, OppScorecard, GID, TID, A
 
 scorecard_total(Scorecard) ->
 	UpperSection = lists:sublist(Scorecard,6),
-	LowerSection = lists:sublist(lists:nthtail(6,Scorecard),6),
+	LowerSection = lists:sublist(lists:nthtail(6,Scorecard),7),
 	UpperTotal = total(UpperSection),
 	LowerTotal = total(LowerSection),
-	io:format("Upper: ~p, Lower:~p~n",[UpperSection, LowerSection]),
+	io:format("Upper: ~p [~p], Lower:~p [~p]~n",[UpperSection, UpperTotal, LowerSection, LowerTotal]),
 	if
 		UpperTotal >= 63 ->
 			UpperTotal + LowerTotal + 35;
 		true ->
 			UpperTotal + LowerTotal
 	end.
+
+% If Regular mode, return same dice. Otherwise return new
+get_second_dice(Dice, true) ->
+	Dice;
+get_second_dice(_, false) ->
+	get_dice_roll(). 
 
 
 % Given a scorecard, return proper sum

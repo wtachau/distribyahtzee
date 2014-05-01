@@ -3,6 +3,7 @@
 %% Usage:
 %% erl -compile yahtzee_player1
 %% erl -noshell -run yahtzee_player1 main Will u p tm1@<host> tm2@<host> -run init stop -noshell
+%% ex: erl -noshell -run yahtzee_player1 main Will u p tm1@pine -run init stop -noshell
 %%
 
 -module(yahtzee_player1).
@@ -98,8 +99,6 @@ listen(Connections)->
 		{start_tournament, PID, TID} ->
 			io:format("~p Received start_tournament request from ~p with TID ~p~n",[timestamp(), PID, TID]),
 
-			%% FIXME: something about accepting tournament (data structures? does it matter?)
-
 			PID ! {accept_tournament, self(), TID},
 			listen(Connections);
 
@@ -125,18 +124,21 @@ listen(Connections)->
 %% ====================================================================	
 make_a_move(Scorecard, Dice, RollNumber) ->
 
+	% Design choice: what to return when a move is made
+	ReturnDice = [true, true, true, true, true],
+
 	% First, if we have to return a decision
 	if
 		RollNumber == 3 ->
 			% return a decision!
 			{Decision, Score} = make_decision(1, Scorecard, Dice),
-			{Dice, Decision};
+			{ReturnDice, Decision};
 		true ->
 			% If we can already return something (i.e. a large straight, yahtqzee)
 			ShouldReturn = should_return_now(Scorecard, Dice),
 			if
 				ShouldReturn >= 1 ->
-					{Dice, ShouldReturn};
+					{ReturnDice, ShouldReturn};
 				true ->
 					% decide which dice to keep
 					KeepDice = keep_dice(Dice, Scorecard, RollNumber),
@@ -151,7 +153,6 @@ make_decision(14, _, _) ->
 	{-1,-1};
 make_decision(CurrentIndex, Scorecard, Dice) ->
 	% Return highest valid scorecard entry
-	io:format("looking at ~p, ~p~n", [CurrentIndex, Scorecard]),
 	CurScore = get_score_for(CurrentIndex, Dice),
 	CurNotUsed = lists:nth(CurrentIndex, Scorecard),
 
@@ -206,6 +207,7 @@ should_return_now(Scorecard, Dice) ->
 
 % Decide which dice to keep (return list of booleans)
 keep_dice(Dice, Scorecard, RollNumber) ->
+<<<<<<< HEAD
 if 
 	RollNumber =:= 1 ->
 		make_decision(Dice, Scorecard);
@@ -217,8 +219,21 @@ if
 get_random_die() ->
 	random:seed(now()),
 	Rand = round(random:uniform()),
+=======
+	Keep1 = get_random_die(6),
+	Keep2 = get_random_die(2),
+	Keep3 = get_random_die(12),
+	Keep4 = get_random_die(2),
+	Keep5 = get_random_die(7),
+	[Keep1, Keep2, Keep3, Keep4, Keep5].
+
+get_random_die(Seed) ->
+	random:seed(now()),
+	Rand = random:uniform(),
+	timer:sleep(5), %for random seed
+>>>>>>> bb3152cab9de5911fecfd99767e6fbbd749b1a6e
 	if
-		Rand == 1 ->
+		round(Rand) == 1 -> % make 2 to simulate same strategy
 			true;
 		true ->
 			false
