@@ -207,31 +207,19 @@ should_return_now(Scorecard, Dice) ->
 
 % Decide which dice to keep (return list of booleans)
 keep_dice(Dice, Scorecard, RollNumber) ->
-<<<<<<< HEAD
-if 
-	RollNumber =:= 1 ->
-		make_decision(Dice, Scorecard);
-	RollNumber =:= 2 ->
-		make_decision(Dice, Scorecard);
-	true ->
-		make_decision(Dice, Scorecard).
+	if 
+		RollNumber =:= 1 ->
+			make_decision(Dice, Scorecard);
+		RollNumber =:= 2 ->
+			make_decision(Dice, Scorecard);
+		true ->
+			make_decision(Dice, Scorecard)
+	end.
+
 
 get_random_die() ->
 	random:seed(now()),
 	Rand = round(random:uniform()),
-=======
-	Keep1 = get_random_die(6),
-	Keep2 = get_random_die(2),
-	Keep3 = get_random_die(12),
-	Keep4 = get_random_die(2),
-	Keep5 = get_random_die(7),
-	[Keep1, Keep2, Keep3, Keep4, Keep5].
-
-get_random_die(Seed) ->
-	random:seed(now()),
-	Rand = random:uniform(),
-	timer:sleep(5), %for random seed
->>>>>>> bb3152cab9de5911fecfd99767e6fbbd749b1a6e
 	if
 		round(Rand) == 1 -> % make 2 to simulate same strategy
 			true;
